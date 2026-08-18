@@ -12,7 +12,8 @@ Teach AI (and humans) to ship code safely, and **manage vibe code** under policy
   Go       →  what runs
 ```
 
-Local first. Simple is better. Fail closed — like Terraform: **nothing goes if plan/apply fails.**
+Local first. Simple is better. Fail closed — like Terraform: **nothing goes if plan/apply fails.**  
+**We dogfood:** this repo ships through `frontier plan → apply → push` ([english/DOGFOOD.md](english/DOGFOOD.md)).
 
 ---
 
