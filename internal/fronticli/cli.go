@@ -13,6 +13,7 @@ import (
 	"github.com/Wadek/frontier-push-mcp/internal/ledger"
 	"github.com/Wadek/frontier-push-mcp/internal/owasp"
 	"github.com/Wadek/frontier-push-mcp/internal/policy"
+	"github.com/Wadek/frontier-push-mcp/internal/vscan"
 )
 
 // Set by SLSA / release ldflags.
@@ -164,18 +165,23 @@ func handleMeta(args []string) {
   git frontier apply        seal push authorization only if plan passed
   git frontier gate         alias of apply
 
-  git frontier V            run Vulnerabilities exam (OWASP)
+  git frontier V            run Vulnerabilities exam (OWASP built-in)
+  git frontier V list       list programmatic scanners (owasp, checkov, …)
+  git frontier V checkov    run Checkov adapter if installed (no tokens)
   git frontier S            Slim / vibe-bloat (PLANNED — not enforced)
   git frontier exam         alias of V
+  git frontier enhance V    programmatic pack + lean brief for host model
+  git frontier enhance status|seal
   git frontier mock-import  mock V-importer list
 
   git frontier status|ledger|demo|explain
 
 Env: FRONTIER_SOFT=1  FRONTIER_VERBOSE=1  FRONTIER_GIT_BIN  FRONTIER_LEDGER
+     FRONTIER_V_AUTO=1  also run available adapters during enhance/V pack
 
 Nothing remote goes if plan/apply fails (like terraform).
 
-Same commands as standalone:  frontier V | plan | apply | S
+Same commands as standalone:  frontier V | enhance V | plan | apply | S
 (Not \"go frontier\" — go is the Go toolchain; use frontier or go run ./cmd/frontier)`)
 		return
 	}
@@ -188,7 +194,13 @@ Same commands as standalone:  frontier V | plan | apply | S
 		fmt.Printf("cwd: %s\nbranch: %s\ndirty: %v\nledger: %s\nreal_git: %s\nsoft: %v\n",
 			cwd, b, policy.DirtyPorcelain(p), findLedger(cwd), findRealGit(), os.Getenv("FRONTIER_SOFT") == "1")
 	case "V", "v", "exam":
+		if len(args) > 1 {
+			runVSub(cwd, args[1:])
+			return
+		}
 		runExam(cwd, true)
+	case "enhance":
+		runEnhance(cwd, args[1:])
 	case "S", "s":
 		printSlimStub()
 	case "plan":
@@ -224,6 +236,9 @@ Terraform-like flow:
 Policy families:
   V  Vulnerabilities — security definitions (OWASP…); enforced at changeset
   S  Slim — vibe-code bloat reduction; PLANNED (not enforced yet)
+
+Enhance:
+  git frontier enhance V   # programmatic first, lean brief for host model (Grok/Fable/…)
 
 Control points: changeset | review | runtime | engagement
 Languages: English · Haskell · Go
@@ -305,6 +320,197 @@ func runExam(cwd string, seal bool) ([]owasp.Finding, error) {
 	}
 	axiom("F4", "exam.done", fmt.Sprintf("%d finding(s)", len(findings)))
 	return findings, nil
+}
+
+func runVSub(cwd string, args []string) {
+	if len(args) == 0 {
+		runExam(cwd, true)
+		return
+	}
+	sub := strings.ToLower(args[0])
+	switch sub {
+	case "list":
+		fmt.Println(`╔══════════════════════════════════════════════╗
+║     FRONTIER V — programmatic scanners       ║
+╚══════════════════════════════════════════════╝
+name        builtin  available  notes
+----        -------  ---------  -----`)
+		for _, s := range vscan.Registry() {
+			avail := "no"
+			if s.Available() {
+				avail = "yes"
+			}
+			builtin := "no"
+			if s.Builtin() {
+				builtin = "yes"
+			}
+			note := ""
+			if !s.Available() && !s.Builtin() {
+				note = "install or planned"
+			}
+			if s.Name() == "checkov" && !s.Available() {
+				note = "pip install checkov"
+			}
+			fmt.Printf("%-11s %-7s  %-9s  %s\n", s.Name(), builtin, avail, note)
+		}
+		fmt.Println(`
+Gate/plan still hard-block only on built-in owasp-v0 High/Critical.
+Adapters enrich V / enhance briefs without burning model tokens.`)
+	default:
+		sc, ok := vscan.Lookup(sub)
+		if !ok {
+			fmt.Fprintf(os.Stderr, "unknown V scanner %q (try: frontier V list)\n", sub)
+			os.Exit(2)
+		}
+		fmt.Printf("╔══════════════════════════════════════════════╗\n║     FRONTIER V — adapter %-12s       ║\n╚══════════════════════════════════════════════╝\n", sc.Name())
+		axiom("F4", "exam.adapter", sc.Name())
+		res, err := sc.Scan(cwd)
+		if err != nil {
+			fail(err)
+			return
+		}
+		if res.Skipped {
+			fmt.Printf("skipped: %s\n", res.SkipWhy)
+			return
+		}
+		fmt.Printf("source: %s\nfindings: %d\n", res.Source, len(res.Findings))
+		for _, f := range res.Findings {
+			fmt.Printf("  [%s] %s %s:%d  %s\n", f.Severity, f.RuleID, f.Path, f.Line, f.Snippet)
+		}
+		led, err := ledger.Open(findLedger(cwd))
+		if err == nil {
+			_, _ = led.Append("frontier-git", "exam.adapter", map[string]any{
+				"source": res.Source, "findings": len(res.Findings), "meta": res.Meta,
+			})
+			axiom("F0", "ledger.append", "exam.adapter sealed")
+		}
+	}
+}
+
+func runEnhance(cwd string, args []string) {
+	if len(args) == 0 {
+		fmt.Println(`enhance commands:
+  frontier enhance V         programmatic V pack + lean host brief
+  frontier enhance status    last enhance.* ledger seals
+  frontier enhance seal PATH ingest host-model result JSON (advise)`)
+		return
+	}
+	switch strings.ToLower(args[0]) {
+	case "V", "v":
+		runEnhanceV(cwd)
+	case "status":
+		runEnhanceStatus(cwd)
+	case "seal":
+		if len(args) < 2 {
+			fail(fmt.Errorf("usage: frontier enhance seal <result.json>"))
+			return
+		}
+		runEnhanceSeal(cwd, args[1])
+	default:
+		fmt.Fprintf(os.Stderr, "unknown enhance subcommand %q\n", args[0])
+		os.Exit(2)
+	}
+}
+
+func runEnhanceV(cwd string) {
+	fmt.Println(`╔══════════════════════════════════════════════╗
+║  ENHANCE V — programmatic first, then host   ║
+╚══════════════════════════════════════════════╝`)
+	axiom("F0", "enhance.start", "build pack without tokens; hand residual to host model")
+	opts := vscan.Options{}
+	// Explicit adapters on enhance: checkov when available (still programmatic).
+	if s, ok := vscan.Lookup("checkov"); ok && s.Available() {
+		opts.Adapters = []string{"checkov"}
+	}
+	pack, err := vscan.BuildPack(cwd, opts)
+	if err != nil {
+		fail(err)
+		return
+	}
+	art, err := vscan.WriteEnhanceBrief(cwd, pack)
+	if err != nil {
+		fail(err)
+		return
+	}
+	fmt.Printf("disposition (programmatic): %s\n", pack.Disposition)
+	fmt.Printf("findings: %d (brief shows <=%d)\n", len(pack.Findings), vscan.MaxBriefFindings)
+	fmt.Printf("adapters: %s\n", strings.Join(pack.AdaptersRun, ", "))
+	fmt.Printf("scope: %s\n", pack.ScopeMode)
+	fmt.Printf("\nbrief:  %s\njson:   %s\n", art.Markdown, art.JSON)
+	fmt.Println("\nHost (Grok / Fable / …): read the brief. Do residual work only. Then:")
+	fmt.Println("  frontier enhance seal .frontier/enhance/<result>.json")
+	led, err := ledger.Open(findLedger(cwd))
+	if err != nil {
+		fail(err)
+		return
+	}
+	_, _ = led.Append("frontier-git", "enhance.requested", map[string]any{
+		"control":               "changeset",
+		"disposition":           pack.Disposition,
+		"findings_programmatic": len(pack.Findings),
+		"brief":                 art.Markdown,
+		"json":                  art.JSON,
+		"adapters":              pack.AdaptersRun,
+		"token_budget": map[string]int{
+			"max_findings": vscan.MaxBriefFindings,
+			"max_paths":    vscan.MaxBriefPaths,
+			"max_bytes":    vscan.MaxBriefBytes,
+		},
+	})
+	axiom("F0", "ledger.append", "enhance.requested sealed")
+	axiom("F4", "enhance.handoff", "waiting on host model — no gate change")
+}
+
+func runEnhanceStatus(cwd string) {
+	led, err := ledger.Open(findLedger(cwd))
+	if err != nil {
+		fail(err)
+		return
+	}
+	rows, _ := led.Tail(40)
+	n := 0
+	for _, r := range rows {
+		if strings.HasPrefix(r.Action, "enhance.") {
+			fmt.Printf("%d %s %s %v\n", r.Seq, r.TS, r.Action, r.Payload)
+			n++
+		}
+	}
+	if n == 0 {
+		fmt.Println("no enhance.* seals yet — run: frontier enhance V")
+	}
+}
+
+func runEnhanceSeal(cwd, path string) {
+	payload, err := vscan.ReadSealFile(path)
+	if err != nil {
+		fail(err)
+		return
+	}
+	disp := payload.DispositionSuggest
+	if disp == "" || disp == "block" {
+		// Enhance never auto-blocks gate; promote into V definitions instead.
+		if disp == "block" {
+			axiom("F4", "enhance.advise_only", "host suggested block — sealed as advise until V promotion")
+		}
+		disp = "advise"
+	}
+	led, err := ledger.Open(findLedger(cwd))
+	if err != nil {
+		fail(err)
+		return
+	}
+	_, _ = led.Append("frontier-git", "enhance.completed", map[string]any{
+		"summary":             payload.Summary,
+		"findings":            len(payload.Findings),
+		"disposition_suggest": disp,
+		"tools_used":          payload.ToolsUsed,
+		"residual_risk":       payload.ResidualRisk,
+		"seal_path":           path,
+		"blocks_gate":         false,
+	})
+	axiom("F0", "ledger.append", "enhance.completed sealed (advise)")
+	fmt.Printf("enhance sealed: disposition=%s findings=%d\n", disp, len(payload.Findings))
+	fmt.Println("note: does not change gate — promote durable rules into V to block.")
 }
 
 func printMockImport() {

@@ -77,7 +77,10 @@ git push
 Also:
 
 ```text
-frontier V                 # vulnerabilities exam
+frontier V                 # vulnerabilities exam (built-in OWASP)
+frontier V list            # scanners: owasp-v0, checkov, …
+frontier V checkov         # Checkov adapter if installed (no tokens)
+frontier enhance V         # programmatic pack + lean brief for host model
 frontier S                 # slim stub — planned
 frontier mock-import       # mock V-importer
 git frontier demo|ledger|status|explain
