@@ -85,6 +85,8 @@ It learns to look before writing. Promote to Operator only for commit drills. Ex
 
 See [`teach/CURRICULUM.md`](teach/CURRICULUM.md).
 
+**Restricted / corporate AI (no install):** copy-paste [`teach/CORPORATE_AI_TRIAL_PROMPT.md`](teach/CORPORATE_AI_TRIAL_PROMPT.md) into Copilot/ChatGPT Enterprise/etc. to simulate the ladder.
+
 ## Principles
 
 1. **Local first** — ledger and git on disk; no cloud required.
