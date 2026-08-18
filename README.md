@@ -93,6 +93,11 @@ See [`teach/CURRICULUM.md`](teach/CURRICULUM.md).
 4. **Evidence before remote mutate** — gate seal required for push.
 5. **No bypass for Executor** — push tool refuses without a fresh gate.
 
+## Axioms
+
+The Frontier AI universe is governed by **F0–F4** (evidence, non-harm, obedience, continuity, examination).  
+See [`AXIOMS.md`](AXIOMS.md) — including the formal priority order and the sound form of “examine all lines.”
+
 ## License
 
 MIT — use it to train, fork, and harden.
