@@ -76,7 +76,7 @@ $env:FRONTIER_SOFT = "0"
 
 ---
 
-## Step 4 — First safe drill
+## Step 4 — First safe drill (and *see* it)
 
 ```text
 cd <some-repo>
@@ -84,11 +84,14 @@ git checkout -b frontier/first
 # edit a file
 git add -A
 git commit -m "frontier: first sealed change"
+git frontier demo          # visible theater — look at this
 git frontier gate
+git frontier demo          # see gate seal change
 git push -u origin HEAD
 ```
 
-If `gate` fails, read the reasons. Fix. Gate again. Then push.
+If `gate` fails, read the reasons. Fix. Gate again. Then push.  
+If you cannot see the result in `demo` / `ledger`, the test did not happen.
 
 ---
 

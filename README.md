@@ -3,17 +3,20 @@
 Teach AI (and humans) to ship code the safe way.
 
 **The daily interface is `git`.**  
-**The human docs are simple English.**  
-**The compute laws are Haskell.**  
-**The local runtime is Go.**
+**Humans read simple English.**  
+**Proofs live in Haskell.**  
+**The local runtime is Go.**  
+**Draft in any language — then reverse-engineer to the proof.**  
+**Least code that still proves the result wins** (limits vibe bloat and tokens).
 
 ```
   English  →  what we mean          (english/)
   Haskell  →  what is true          (haskell/)
   Go       →  what runs             (cmd/, internal/)
+  *        →  what you may draft in — then reduce
 ```
 
-No custom OS. No random fourth language. Local first. Simple is better.
+No custom OS. Local first. Simple is better. See the test: `git frontier demo`.
 
 ---
 
@@ -76,10 +79,12 @@ Same idea in English (`english/AXIOMS.md`), Haskell (`Frontier.Role`), and Go (`
 | Path | Layer |
 |------|--------|
 | [english/INIT.md](english/INIT.md) | How to start |
-| [english/LANGUAGE.md](english/LANGUAGE.md) | English · Haskell · Go |
+| [english/LANGUAGE.md](english/LANGUAGE.md) | English · Haskell · Go (+ draft in any) |
+| [english/MINIMALITY.md](english/MINIMALITY.md) | Least code; reverse-engineer pushes |
+| [english/CONTRIBUTING.md](english/CONTRIBUTING.md) | How to contribute without noise |
 | [english/AXIOMS.md](english/AXIOMS.md) | Laws F0–F5 in English |
 | [haskell/](haskell/) | Laws as pure Haskell |
-| [cmd/frontier-git](cmd/frontier-git) | Go: `git` interface |
+| [cmd/frontier-git](cmd/frontier-git) | Go: `git` interface (`git frontier demo`) |
 | [cmd/frontier-mcp](cmd/frontier-mcp) | Go: MCP server for AI hosts |
 | [teach/](teach/) | Drills and corporate trial prompt |
 | [english/WHY_NOT_A_CUSTOM_OS.md](english/WHY_NOT_A_CUSTOM_OS.md) | Why we do not write an OS |

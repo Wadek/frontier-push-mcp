@@ -49,7 +49,7 @@ func main() {
 			return
 		}
 	case "frontier":
-		// frontier-git frontier status|ledger|explain
+		// git frontier status|ledger|explain|demo
 		handleMeta(args[1:])
 		return
 	}
@@ -134,11 +134,12 @@ func guardCommit(args []string, soft, strict bool) error {
 
 func handleMeta(args []string) {
 	if len(args) == 0 {
-		fmt.Println(`frontier-git meta commands:
-  frontier-git frontier status   # role-ish view of tree + ledger path
-  frontier-git frontier gate     # seal gate.passed/failed for current HEAD
-  frontier-git frontier ledger   # show last ledger rows
-  frontier-git frontier explain  # how this wraps git
+		fmt.Println(`git frontier commands:
+  git frontier status    tree + ledger path
+  git frontier gate      seal gate for current HEAD
+  git frontier ledger    last ledger rows
+  git frontier demo      SEE the ladder (visible test)
+  git frontier explain   how this wraps git
 
 Env: FRONTIER_SOFT=1 (learn), FRONTIER_STRICT=1, FRONTIER_GIT_BIN, FRONTIER_LEDGER`)
 		return
@@ -150,7 +151,7 @@ Env: FRONTIER_SOFT=1 (learn), FRONTIER_STRICT=1, FRONTIER_GIT_BIN, FRONTIER_LEDG
 		b, _ := repo.Branch()
 		p, _ := repo.StatusPorcelain()
 		fmt.Printf("cwd: %s\nbranch: %s\ndirty: %v\nledger: %s\nreal_git: %s\nsoft: %v\n",
-			cwd, b, strings.TrimSpace(p) != "", findLedger(cwd), findRealGit(), os.Getenv("FRONTIER_SOFT") == "1")
+			cwd, b, policy.DirtyPorcelain(p), findLedger(cwd), findRealGit(), os.Getenv("FRONTIER_SOFT") == "1")
 	case "gate":
 		repo := gitx.Repo{Dir: cwd}
 		b, _ := repo.Branch()
@@ -181,6 +182,8 @@ Env: FRONTIER_SOFT=1 (learn), FRONTIER_STRICT=1, FRONTIER_GIT_BIN, FRONTIER_LEDG
 		for _, r := range rows {
 			fmt.Printf("%d %s %s %s\n", r.Seq, r.TS, r.Actor, r.Action)
 		}
+	case "demo":
+		printDemo(cwd)
 	case "explain":
 		fmt.Println(`You are talking to Frontier through the git interface.
 
@@ -191,14 +194,78 @@ Passthrough: almost all git commands.
 Guarded: git push   — needs feature branch, clean tree, fresh gate
          git commit — denied on main/master unless FRONTIER_SOFT=1
 
-Meta:    git frontier status|gate|ledger|explain
-Learn:   set FRONTIER_SOFT=1 then turn it off when ready
-Source:  D:\frontier\src\git  (upstream study copy)
-Kernels / "linux frontier": later — userland git first.`)
+Meta:    git frontier status|gate|ledger|demo|explain
+Languages: English (meaning) · Haskell (proof) · Go (runtime)
+Contribute in any language, then reverse-engineer to Haskell proof.
+Minimality: least code that still proves the result.
+Learn:   set FRONTIER_SOFT=1 then turn it off when ready`)
 	default:
 		fmt.Fprintf(os.Stderr, "unknown frontier subcommand %q\n", args[0])
 		os.Exit(2)
 	}
+}
+
+func printDemo(cwd string) {
+	repo := gitx.Repo{Dir: cwd}
+	b, _ := repo.Branch()
+	h, _ := repo.RevParseHead()
+	p, _ := repo.StatusPorcelain()
+	dirty := policy.DirtyPorcelain(p)
+	g := policy.EvaluatePushGate(b, h, p, false)
+	ledPath := findLedger(cwd)
+	var lastGate string
+	if led, err := ledger.Open(ledPath); err == nil {
+		if e, _ := led.LastAction("gate.passed"); e != nil {
+			lastGate = "gate.passed@" + e.EntryHash[:12]
+		} else if e, _ := led.LastAction("gate.failed"); e != nil {
+			lastGate = "gate.failed"
+		} else {
+			lastGate = "(none yet)"
+		}
+	} else {
+		lastGate = "(no ledger)"
+	}
+
+	onMain := strings.EqualFold(b, "main") || strings.EqualFold(b, "master")
+	fmt.Println(`╔══════════════════════════════════════════════╗
+║           FRONTIER  —  visible test          ║
+╚══════════════════════════════════════════════╝`)
+	fmt.Printf("  branch     %s\n", nz(b, "(none)"))
+	fmt.Printf("  HEAD       %s\n", short(h))
+	fmt.Printf("  dirty      %v\n", dirty)
+	fmt.Printf("  on_main    %v\n", onMain)
+	fmt.Printf("  gate_now   ok=%v  %v\n", g.OK, g.Reasons)
+	fmt.Printf("  last_seal  %s\n", lastGate)
+	fmt.Printf("  ledger     %s\n", ledPath)
+	fmt.Println()
+	fmt.Println("  ladder     Observer → Analyst → Operator → Executor")
+	fmt.Println("  push?      only Executor + fresh gate.passed + feature branch")
+	fmt.Println("  languages  English · Haskell · Go   (draft in any, prove in Haskell)")
+	fmt.Println("  minimality least code that still proves the result")
+	fmt.Println()
+	if g.OK {
+		fmt.Println("  SEE: gate would PASS right now. Next: git push (if role allows).")
+	} else {
+		fmt.Println("  SEE: gate would FAIL right now. Fix reasons, then: git frontier gate")
+	}
+	fmt.Println("╚══════════════════════════════════════════════╝")
+}
+
+func short(h string) string {
+	if len(h) > 12 {
+		return h[:12]
+	}
+	if h == "" {
+		return "(none)"
+	}
+	return h
+}
+
+func nz(s, d string) string {
+	if strings.TrimSpace(s) == "" {
+		return d
+	}
+	return s
 }
 
 func findLedger(cwd string) string {

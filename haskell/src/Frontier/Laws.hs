@@ -45,4 +45,4 @@ axiomEnglish F3 =
 axiomEnglish F4 =
   "Before push: examine the change at maximum, at least once, against vuln set V (V starts empty). No untriaged Critical/High under V."
 axiomEnglish F5 =
-  "New behavior needs English + Haskell + Go saying the same thing."
+  "Admit only when English + Haskell + Go agree. Draft in any language, then reverse-engineer to the Haskell proof. Prefer least code."
