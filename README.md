@@ -109,6 +109,18 @@ No install allowed? Use [teach/CORPORATE_AI_TRIAL_PROMPT.md](teach/CORPORATE_AI_
 
 ---
 
+## Alpha release (SLSA)
+
+Tagged releases use **SLSA Go releaser** (provenance on the binaries).
+
+Walkthrough: **[english/RELEASE.md](english/RELEASE.md)**
+
+```text
+git tag -a v0.1.0-alpha.1 -m "Frontier alpha"
+git push origin v0.1.0-alpha.1
+# → https://github.com/Wadek/frontier-push-mcp/releases
+```
+
 ## License
 
 MIT

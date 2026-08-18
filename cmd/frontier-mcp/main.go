@@ -16,6 +16,12 @@ import (
 	"github.com/Wadek/frontier-push-mcp/internal/role"
 )
 
+// Set by SLSA / release ldflags.
+var (
+	version = "dev"
+	commit  = "none"
+)
+
 type state struct {
 	mu   sync.Mutex
 	role role.Role
@@ -46,7 +52,7 @@ func main() {
 
 	srv := &mcpstdio.Server{
 		Name:    "frontier-push",
-		Version: "0.1.0",
+		Version: version,
 		Tools: []mcpstdio.Tool{
 			{Name: "frontier_whoami", Description: "Show current role, repo, and frontier principles. Cheap. Start here.", InputSchema: emptyObj},
 			{Name: "frontier_observe", Description: "Observer: git status, branch, recent log. No writes.", InputSchema: emptyObj},

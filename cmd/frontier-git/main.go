@@ -14,6 +14,12 @@ import (
 	"github.com/Wadek/frontier-push-mcp/internal/policy"
 )
 
+// Set by SLSA / release ldflags.
+var (
+	version = "dev"
+	commit  = "none"
+)
+
 // frontier-git: drop-in git wrapper. Most commands pass through.
 // Frontier security applies to high-blast verbs (push; commit on main).
 //
@@ -185,6 +191,7 @@ Env: FRONTIER_SOFT=1 (learn), FRONTIER_STRICT=1, FRONTIER_GIT_BIN, FRONTIER_LEDG
 	case "demo":
 		printDemo(cwd)
 	case "explain":
+		fmt.Printf("frontier-git %s (%s)\n\n", version, commit)
 		fmt.Println(`You are talking to Frontier through the git interface.
 
   Type:  git …              (this shim)
