@@ -1,127 +1,94 @@
 # Frontier Push
 
-Teach AI (and humans) to ship code the safe way.
+Teach AI (and humans) to ship code safely, and **manage vibe code** under policy.
 
 **The daily interface is `git`.**  
-**Humans read simple English.**  
-**Proofs live in Haskell.**  
-**The local runtime is Go.**  
-**Draft in any language — then reverse-engineer to the proof.**  
-**Least code that still proves the result wins** (limits vibe bloat and tokens).
+**MCP** connects hosts and (later) agents.  
+**Humans keep control at push.**
 
 ```
-  English  →  what we mean          (english/)
-  Haskell  →  what is true          (haskell/)
-  Go       →  what runs             (cmd/, internal/)
-  *        →  what you may draft in — then reduce
+  English  →  what we mean
+  Haskell  →  what is true
+  Go       →  what runs
 ```
 
-No custom OS. Local first. Simple is better. See the test: `git frontier demo`.
+Local first. Simple is better. Fail closed — like Terraform: **nothing goes if plan/apply fails.**
 
 ---
 
-## Init (start here)
+## Policy families
+
+| | Name | Meaning |
+|--|------|---------|
+| **V** | **Vulnerabilities** | Security definitions (OWASP / MITRE via importer). Examined at **changeset**. High/Critical → **block**. |
+| **S** | **Slim** | **Planned:** reduce vibe-code bloat (budgets, dead code). Advise first; optional block later. **Not enforced yet.** |
+
+Today: **V only.** S is on the roadmap.
+
+---
+
+## Init
 
 Full steps: **[english/INIT.md](english/INIT.md)**
-
-Short version:
 
 ```powershell
 git clone https://github.com/Wadek/frontier-push-mcp.git
 cd frontier-push-mcp
 powershell -File scripts\install-git-interface.ps1
-# open a NEW terminal
+# new terminal
 git frontier explain
 ```
 
-First drill:
+---
+
+## Terraform-like flow
 
 ```powershell
-$env:FRONTIER_SOFT = "1"          # learn mode; set to 0 later
 git checkout -b frontier/topic
-# edit files
+# edit…
 git add -A
-git commit -m "frontier: topic"
-git frontier gate
-git push -u origin HEAD
+git commit -m "msg"
+
+git frontier plan     # preview V — FAIL stops everything
+git frontier apply    # seal authorization — only if plan passed
+git push              # only if apply sealed gate.passed
 ```
 
----
+| Command | Like Terraform | What it does |
+|---------|----------------|--------------|
+| `git frontier plan` | `terraform plan` | Run **V**; preview ship; **exit ≠ 0** if block |
+| `git frontier apply` | `terraform apply` | Authorize push **only** after fresh `plan.passed` |
+| `git push` | apply to remote | Real git; Frontier denies without sealed apply |
+| Ledger | state | Evidence of plan/apply (F0) |
 
-## What the `git` shim does
+Also:
 
-| Command | Behavior |
-|---------|----------|
-| Most `git …` | Passed through to real Git |
-| `git commit` on `main`/`master` | Denied (unless `FRONTIER_SOFT=1`) |
-| `git push` | Needs feature branch, clean tree, and `git frontier gate` |
-| `git frontier status\|gate\|ledger\|explain` | Frontier meta |
-
-Real Git stays at `FRONTIER_GIT_BIN` (default: Git for Windows).
-
----
-
-## Roles (ladder)
-
-| Role | May | May not |
-|------|-----|---------|
-| Observer | look | write / push |
-| Analyst | summarize | commit / push |
-| Operator | branch, commit, gate | push |
-| Executor | push after gate | skip the ladder |
-
-Same idea in English (`english/AXIOMS.md`), Haskell (`Frontier.Role`), and Go (`internal/role`).
+```text
+git frontier V              # vulnerabilities exam (alias: exam)
+git frontier S              # slim stub — planned, not enforced
+git frontier mock-import    # mock V-importer list
+git frontier demo|ledger|status|explain
+```
 
 ---
 
 ## Repo map
 
-| Path | Layer |
-|------|--------|
-| [english/INIT.md](english/INIT.md) | How to start |
-| [english/LANGUAGE.md](english/LANGUAGE.md) | English · Haskell · Go (+ draft in any) |
-| [english/MINIMALITY.md](english/MINIMALITY.md) | Least code; reverse-engineer pushes |
-| [english/CONTRIBUTING.md](english/CONTRIBUTING.md) | How to contribute without noise |
-| [english/CUSTOMER_JOURNEY.md](english/CUSTOMER_JOURNEY.md) | Using Frontier on vibe-coded apps |
-| [english/CUSTOMER_DVNA_BASELINE.md](english/CUSTOMER_DVNA_BASELINE.md) | First customer (DVNA) baseline |
-| [english/AXIOMS.md](english/AXIOMS.md) | Laws F0–F5 in English |
-| [haskell/](haskell/) | Laws as pure Haskell |
-| [cmd/frontier-git](cmd/frontier-git) | Go: `git` interface (`git frontier demo`) |
-| [cmd/frontier-mcp](cmd/frontier-mcp) | Go: MCP server for AI hosts |
-| [teach/](teach/) | Drills and corporate trial prompt |
-| [english/WHY_NOT_A_CUSTOM_OS.md](english/WHY_NOT_A_CUSTOM_OS.md) | Why we do not write an OS |
+| Path | What |
+|------|------|
+| [english/INIT.md](english/INIT.md) | Start here |
+| [english/V_IMPLEMENTATION.md](english/V_IMPLEMENTATION.md) | How V works |
+| [english/SECURITY_POLICY_OWASP.md](english/SECURITY_POLICY_OWASP.md) | V policy (OWASP) |
+| [english/CUSTOMER_JOURNEY.md](english/CUSTOMER_JOURNEY.md) | Takeover / vibe-code use |
+| [english/SCORING_AND_BENCHMARKS.md](english/SCORING_AND_BENCHMARKS.md) | Official score meaning |
+| [haskell/](haskell/) | Proof form of laws + OWASP |
+| [cmd/frontier-git](cmd/frontier-git) | `git` interface |
 
 ---
 
-## Optional: check Haskell laws
+## Alpha release
 
-```text
-cd haskell
-cabal test
-```
-
-Needs GHC. Skip until you install it; English + Go still work.
-
----
-
-## Optional: MCP for AI hosts
-
-Build `frontier-mcp`, then point your host at it (`examples/mcp.claude.json`).  
-No install allowed? Use [teach/CORPORATE_AI_TRIAL_PROMPT.md](teach/CORPORATE_AI_TRIAL_PROMPT.md).
-
----
-
-## Alpha release (SLSA)
-
-Tagged releases use **SLSA Go releaser** (provenance on the binaries).
-
-Walkthrough: **[english/RELEASE.md](english/RELEASE.md)**
-
-```text
-git tag -a v0.1.0-alpha.1 -m "Frontier alpha"
-git push origin v0.1.0-alpha.1
-# → https://github.com/Wadek/frontier-push-mcp/releases
-```
+[english/RELEASE.md](english/RELEASE.md) — SLSA Go releaser, tag `v0.1.0-alpha.1`.
 
 ## License
 

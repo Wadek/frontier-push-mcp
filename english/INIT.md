@@ -76,7 +76,7 @@ $env:FRONTIER_SOFT = "0"
 
 ---
 
-## Step 4 — First safe drill (and *see* it)
+## Step 4 — First safe drill (Terraform-like)
 
 ```text
 cd <some-repo>
@@ -84,14 +84,16 @@ git checkout -b frontier/first
 # edit a file
 git add -A
 git commit -m "frontier: first sealed change"
-git frontier demo          # visible theater — look at this
-git frontier gate
-git frontier demo          # see gate seal change
-git push -u origin HEAD
+
+git frontier demo
+git frontier V             # vulnerabilities exam
+git frontier plan          # must succeed — fail closed
+git frontier apply         # only works after plan.passed
+git push -u origin HEAD    # only works after apply/gate.passed
 ```
 
-If `gate` fails, read the reasons. Fix. Gate again. Then push.  
-If you cannot see the result in `demo` / `ledger`, the test did not happen.
+If `plan` fails, fix reasons; do not expect apply/push to work.  
+Ledger is state (like Terraform state).
 
 ---
 

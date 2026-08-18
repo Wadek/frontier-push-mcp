@@ -159,16 +159,22 @@ func guardCommit(args []string, soft, strict bool) error {
 
 func handleMeta(args []string) {
 	if len(args) == 0 {
-		fmt.Println(`git frontier commands:
-  git frontier status       tree + ledger path
-  git frontier exam         run V (OWASP) at changeset — SEE results
-  git frontier mock-import  mock V-importer list (catalog vs examine)
-  git frontier gate         exam + seal gate for push
-  git frontier ledger       last ledger rows
-  git frontier demo         SEE ladder + gate preview
-  git frontier explain      how this wraps git
+		fmt.Println(`git frontier commands (Terraform-like: plan → apply → push):
 
-Env: FRONTIER_SOFT=1 (learn), FRONTIER_VERBOSE=1, FRONTIER_GIT_BIN, FRONTIER_LEDGER`)
+  git frontier plan         preview V (and note S); FAIL stops the world
+  git frontier apply        seal push authorization only if plan passed
+  git frontier gate         alias of apply
+
+  git frontier V            run Vulnerabilities exam (OWASP)
+  git frontier S            Slim / vibe-bloat (PLANNED — not enforced)
+  git frontier exam         alias of V
+  git frontier mock-import  mock V-importer list
+
+  git frontier status|ledger|demo|explain
+
+Env: FRONTIER_SOFT=1  FRONTIER_VERBOSE=1  FRONTIER_GIT_BIN  FRONTIER_LEDGER
+
+Nothing remote goes if plan/apply fails (like terraform).`)
 		return
 	}
 	cwd, _ := os.Getwd()
@@ -179,12 +185,16 @@ Env: FRONTIER_SOFT=1 (learn), FRONTIER_VERBOSE=1, FRONTIER_GIT_BIN, FRONTIER_LED
 		p, _ := repo.StatusPorcelain()
 		fmt.Printf("cwd: %s\nbranch: %s\ndirty: %v\nledger: %s\nreal_git: %s\nsoft: %v\n",
 			cwd, b, policy.DirtyPorcelain(p), findLedger(cwd), findRealGit(), os.Getenv("FRONTIER_SOFT") == "1")
-	case "exam":
+	case "V", "v", "exam":
 		runExam(cwd, true)
+	case "S", "s":
+		printSlimStub()
+	case "plan":
+		runPlan(cwd, true)
+	case "apply", "gate":
+		runApply(cwd, true)
 	case "mock-import":
 		printMockImport()
-	case "gate":
-		runGate(cwd, true)
 	case "ledger":
 		led, err := ledger.Open(findLedger(cwd))
 		if err != nil {
@@ -201,22 +211,38 @@ Env: FRONTIER_SOFT=1 (learn), FRONTIER_VERBOSE=1, FRONTIER_GIT_BIN, FRONTIER_LED
 		fmt.Printf("frontier-git %s (%s)\n\n", version, commit)
 		fmt.Println(`You are talking to Frontier through the git interface.
 
-  Type:  git …              (this shim)
-  Engine: FRONTIER_GIT_BIN  (real git under the hood)
+  Type:  git …
+  Engine: FRONTIER_GIT_BIN (real git)
 
-Passthrough: almost all git commands.
-Guarded: git push   — needs feature branch, clean tree, fresh gate
-         git commit — denied on main/master unless FRONTIER_SOFT=1
+Terraform-like flow:
+  git frontier plan    # preview — fails closed
+  git frontier apply   # authorize — only if plan passed
+  git push             # only if apply/gate sealed
 
-Meta:    git frontier status|exam|mock-import|gate|ledger|demo|explain
-V only:  security definitions (OWASP + future importer)
-Control: changeset | review | runtime | engagement
+Policy families:
+  V  Vulnerabilities — security definitions (OWASP…); enforced at changeset
+  S  Slim — vibe-code bloat reduction; PLANNED (not enforced yet)
+
+Control points: changeset | review | runtime | engagement
 Languages: English · Haskell · Go
-Minimality: least code that still proves the result`)
+State: ledger (like terraform state) — evidence of plan/apply`)
 	default:
 		fmt.Fprintf(os.Stderr, "unknown frontier subcommand %q\n", args[0])
 		os.Exit(2)
 	}
+}
+
+func printSlimStub() {
+	fmt.Println(`╔══════════════════════════════════════════════╗
+║  S (Slim) — PLANNED, not enforced yet        ║
+╚══════════════════════════════════════════════╝
+  Purpose: manage vibe-code bloat (least code that still works)
+  Control: changeset (advise→block later) + review (intent)
+  Today:   use V only for security baseline
+  Later:   git frontier S   will report budgets / dead code
+
+  Stick with:  git frontier V | plan | apply | push
+╚══════════════════════════════════════════════╝`)
 }
 
 func axiom(id, when, detail string) {
@@ -313,51 +339,116 @@ Next real importer: harvest MITRE/CWE/CAPEC → same columns → Haskell V.
 ╚══════════════════════════════════════════════╝`)
 }
 
-func runGate(cwd string, exitNonZero bool) {
-	axiom("F0", "gate.start", "opening ledger (evidence before remote mutate)")
+func evaluateForShip(cwd string) (policy.GateResult, []owasp.Finding, error) {
 	repo := gitx.Repo{Dir: cwd}
 	b, _ := repo.Branch()
 	h, _ := repo.RevParseHead()
 	p, _ := repo.StatusPorcelain()
-
 	findings, err := runExam(cwd, true)
+	if err != nil {
+		return policy.GateResult{}, nil, err
+	}
+	g := policy.EvaluatePushGate(b, h, p, false)
+	g.Branch, g.Head = b, h
+	g.Dirty = policy.DirtyPorcelain(p)
+	if owasp.BlocksGate(findings) {
+		g.OK = false
+		g.Reasons = append(g.Reasons, "OWASP V: untriaged High/Critical finding(s)")
+		axiom("F4", "exam.block", "High/Critical under V blocks ship")
+	}
+	if strings.EqualFold(b, "main") || strings.EqualFold(b, "master") {
+		axiom("F1", "harm.boundary", "refuse direct ship to main/master")
+	}
+	return g, findings, nil
+}
+
+// runPlan = terraform plan: preview only; nothing remote; fail closed.
+func runPlan(cwd string, exitNonZero bool) {
+	fmt.Println(`╔══════════════════════════════════════════════╗
+║  PLAN (like terraform plan) — V enforced     ║
+║  S (Slim): not enforced yet                  ║
+╚══════════════════════════════════════════════╝`)
+	axiom("F0", "plan.start", "preview ship decision; no remote mutate")
+	g, _, err := evaluateForShip(cwd)
 	if err != nil {
 		fail(err)
 		return
 	}
-
-	g := policy.EvaluatePushGate(b, h, p, false)
-	if owasp.BlocksGate(findings) {
-		g.OK = false
-		g.Reasons = append(g.Reasons, "OWASP V: untriaged High/Critical finding(s)")
-		axiom("F4", "exam.block", "High/Critical under V blocks gate")
-	}
-	if strings.EqualFold(b, "main") || strings.EqualFold(b, "master") {
-		axiom("F1", "harm.boundary", "refuse direct ship to main/master (blast radius)")
-	}
-
 	led, err := ledger.Open(findLedger(cwd))
 	if err != nil {
 		fail(err)
 		return
 	}
+	sealed, err := policy.SealPlan(led, "frontier-git", g)
+	if err != nil {
+		fail(err)
+		return
+	}
+	fmt.Println()
+	if sealed.OK {
+		fmt.Println("Plan: OK — may run: git frontier apply")
+		axiom("F0", "plan.passed", sealed.SealHash)
+	} else {
+		fmt.Println("Plan: FAILED — fix issues; nothing will apply/push")
+		fmt.Printf("Reasons: %v\n", sealed.Reasons)
+		axiom("F0", "plan.failed", strings.Join(sealed.Reasons, "; "))
+		axiom("F3", "continuity", "fail closed — like terraform")
+	}
+	fmt.Printf("ok=%v seal=%s branch=%s head=%s\n", sealed.OK, sealed.SealHash, sealed.Branch, sealed.Head)
+	fmt.Println("╚══════════════════════════════════════════════╝")
+	if !sealed.OK && exitNonZero {
+		os.Exit(2)
+	}
+}
 
+// runApply = terraform apply: only if fresh plan.passed; seals gate.passed.
+func runApply(cwd string, exitNonZero bool) {
+	fmt.Println(`╔══════════════════════════════════════════════╗
+║  APPLY (like terraform apply)                ║
+╚══════════════════════════════════════════════╝`)
+	axiom("F0", "apply.start", "authorize push only from successful plan")
+	repo := gitx.Repo{Dir: cwd}
+	b, _ := repo.Branch()
+	h, _ := repo.RevParseHead()
+	led, err := ledger.Open(findLedger(cwd))
+	if err != nil {
+		fail(err)
+		return
+	}
+	ok, detail := policy.FreshPlanOK(led, b, h)
+	if !ok {
+		axiom("F0", "apply.deny", detail)
+		fmt.Printf("Apply refused: %s\n", detail)
+		if exitNonZero {
+			os.Exit(2)
+		}
+		return
+	}
+	// Re-validate (refresh) like a careful apply.
+	g, _, err := evaluateForShip(cwd)
+	if err != nil {
+		fail(err)
+		return
+	}
+	if !g.OK {
+		_, _ = policy.SealGate(led, "frontier-git", g)
+		axiom("F0", "apply.deny", strings.Join(g.Reasons, "; "))
+		fmt.Printf("Apply refused after refresh: %v\n", g.Reasons)
+		if exitNonZero {
+			os.Exit(2)
+		}
+		return
+	}
 	sealed, err := policy.SealGate(led, "frontier-git", g)
 	if err != nil {
 		fail(err)
 		return
 	}
-	if sealed.OK {
-		axiom("F0", "gate.passed", sealed.SealHash)
-		axiom("F2", "ready", "authorized human may push")
-	} else {
-		axiom("F0", "gate.failed", strings.Join(sealed.Reasons, "; "))
-		axiom("F3", "continuity", "gate remains enforced; no bypass")
-	}
-	fmt.Printf("ok=%v seal=%s reasons=%v\nbranch=%s head=%s\n", sealed.OK, sealed.SealHash, sealed.Reasons, sealed.Branch, sealed.Head)
-	if !sealed.OK && exitNonZero {
-		os.Exit(2)
-	}
+	axiom("F0", "gate.passed", sealed.SealHash)
+	axiom("F2", "ready", "authorized human may git push")
+	fmt.Printf("Apply: OK — sealed gate.passed\nplan_seal=%s gate_seal=%s\n", detail, sealed.SealHash)
+	fmt.Println("Next: git push")
+	fmt.Println("╚══════════════════════════════════════════════╝")
 }
 
 func printDemo(cwd string) {

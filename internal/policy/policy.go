@@ -104,21 +104,55 @@ func SealGate(l *ledger.Ledger, actor string, g GateResult) (*GateResult, error)
 
 // FreshGateOK reports whether a recent gate.passed matches current head/branch.
 func FreshGateOK(l *ledger.Ledger, branch, head string) (bool, string) {
-	e, err := l.LastAction("gate.passed")
+	return freshAction(l, "gate.passed", branch, head, "run: git frontier apply  (or gate)")
+}
+
+// FreshPlanOK reports whether a recent plan.passed matches current head/branch.
+func FreshPlanOK(l *ledger.Ledger, branch, head string) (bool, string) {
+	return freshAction(l, "plan.passed", branch, head, "run: git frontier plan")
+}
+
+func freshAction(l *ledger.Ledger, action, branch, head, hint string) (bool, string) {
+	e, err := l.LastAction(action)
 	if err != nil || e == nil {
-		return false, "no gate.passed in ledger; run frontier_gate"
+		return false, "no " + action + " in ledger; " + hint
 	}
 	exp, _ := e.Payload["expires_at"].(string)
 	if exp != "" {
 		t, err := time.Parse(time.RFC3339, exp)
 		if err == nil && time.Now().UTC().After(t) {
-			return false, "gate expired; run frontier_gate again"
+			return false, action + " expired; " + hint
 		}
 	}
 	b, _ := e.Payload["branch"].(string)
 	h, _ := e.Payload["head"].(string)
 	if b != branch || h != head {
-		return false, "gate was for different branch/HEAD; re-run frontier_gate"
+		return false, action + " was for different branch/HEAD; " + hint
 	}
 	return true, e.EntryHash
+}
+
+// SealPlan writes plan.passed or plan.failed (Terraform-like preview state).
+func SealPlan(l *ledger.Ledger, actor string, g GateResult) (*GateResult, error) {
+	action := "plan.failed"
+	if g.OK {
+		action = "plan.passed"
+		g.ExpiresAt = time.Now().UTC().Add(gateTTL).Format(time.RFC3339)
+	}
+	payload := map[string]any{
+		"ok":         g.OK,
+		"reasons":    g.Reasons,
+		"branch":     g.Branch,
+		"head":       g.Head,
+		"dirty":      g.Dirty,
+		"expires_at": g.ExpiresAt,
+		"V":          "OWASP-Top10-2021-v0",
+		"S":          "not_enforced_yet",
+	}
+	e, err := l.Append(actor, action, payload)
+	if err != nil {
+		return nil, err
+	}
+	g.SealHash = e.EntryHash
+	return &g, nil
 }
