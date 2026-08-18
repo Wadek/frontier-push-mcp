@@ -40,6 +40,8 @@ var rules = []rule{
 var skipDir = map[string]bool{
 	".git": true, "node_modules": true, "vendor": true, ".frontier": true,
 	"__pycache__": true, "dist": true, "build": true,
+	// Labeled fixtures are scored by go test, not by repo-wide gate (dogfood).
+	"testdata": true,
 }
 
 // ScanTree walks root and returns findings under OWASP V.
@@ -72,6 +74,14 @@ func scannable(path string) bool {
 	base := strings.ToLower(filepath.Base(path))
 	// Vendor / minified noise burns tokens and is not "our" vibe code.
 	if strings.HasSuffix(base, ".min.js") || strings.HasSuffix(base, ".min.css") {
+		return false
+	}
+	// Policy engine source embeds regexes that match themselves.
+	if strings.Contains(filepath.ToSlash(path), "/internal/owasp/owasp.go") || base == "owasp.go" && strings.Contains(filepath.ToSlash(path), "/owasp/") {
+		return false
+	}
+	// Unit tests embed intentional bad snippets as strings.
+	if strings.HasSuffix(base, "_test.go") && strings.Contains(filepath.ToSlash(path), "/internal/owasp/") {
 		return false
 	}
 	ext := strings.ToLower(filepath.Ext(path))
