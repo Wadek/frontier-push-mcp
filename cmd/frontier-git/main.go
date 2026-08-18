@@ -160,13 +160,15 @@ func guardCommit(args []string, soft, strict bool) error {
 func handleMeta(args []string) {
 	if len(args) == 0 {
 		fmt.Println(`git frontier commands:
-  git frontier status    tree + ledger path
-  git frontier gate      seal gate for current HEAD
-  git frontier ledger    last ledger rows
-  git frontier demo      SEE the ladder (visible test)
-  git frontier explain   how this wraps git
+  git frontier status       tree + ledger path
+  git frontier exam         run V (OWASP) at changeset — SEE results
+  git frontier mock-import  mock V-importer list (catalog vs examine)
+  git frontier gate         exam + seal gate for push
+  git frontier ledger       last ledger rows
+  git frontier demo         SEE ladder + gate preview
+  git frontier explain      how this wraps git
 
-Env: FRONTIER_SOFT=1 (learn), FRONTIER_STRICT=1, FRONTIER_GIT_BIN, FRONTIER_LEDGER`)
+Env: FRONTIER_SOFT=1 (learn), FRONTIER_VERBOSE=1, FRONTIER_GIT_BIN, FRONTIER_LEDGER`)
 		return
 	}
 	cwd, _ := os.Getwd()
@@ -177,6 +179,10 @@ Env: FRONTIER_SOFT=1 (learn), FRONTIER_STRICT=1, FRONTIER_GIT_BIN, FRONTIER_LEDG
 		p, _ := repo.StatusPorcelain()
 		fmt.Printf("cwd: %s\nbranch: %s\ndirty: %v\nledger: %s\nreal_git: %s\nsoft: %v\n",
 			cwd, b, policy.DirtyPorcelain(p), findLedger(cwd), findRealGit(), os.Getenv("FRONTIER_SOFT") == "1")
+	case "exam":
+		runExam(cwd, true)
+	case "mock-import":
+		printMockImport()
 	case "gate":
 		runGate(cwd, true)
 	case "ledger":
@@ -202,11 +208,11 @@ Passthrough: almost all git commands.
 Guarded: git push   — needs feature branch, clean tree, fresh gate
          git commit — denied on main/master unless FRONTIER_SOFT=1
 
-Meta:    git frontier status|gate|ledger|demo|explain
-Languages: English (meaning) · Haskell (proof) · Go (runtime)
-Contribute in any language, then reverse-engineer to Haskell proof.
-Minimality: least code that still proves the result.
-Learn:   set FRONTIER_SOFT=1 then turn it off when ready`)
+Meta:    git frontier status|exam|mock-import|gate|ledger|demo|explain
+V only:  security definitions (OWASP + future importer)
+Control: changeset | review | runtime | engagement
+Languages: English · Haskell · Go
+Minimality: least code that still proves the result`)
 	default:
 		fmt.Fprintf(os.Stderr, "unknown frontier subcommand %q\n", args[0])
 		os.Exit(2)
@@ -221,6 +227,92 @@ func verbose() bool {
 	return os.Getenv("FRONTIER_VERBOSE") == "1" || os.Getenv("FRONTIER_VERBOSE") == "true"
 }
 
+func runExam(cwd string, seal bool) ([]owasp.Finding, error) {
+	fmt.Println(`╔══════════════════════════════════════════════╗
+║     FRONTIER EXAM — V at control=changeset   ║
+╚══════════════════════════════════════════════╝`)
+	axiom("F0", "exam.ledger", "evidence path open")
+	axiom("F4", "exam.start", "policy V = OWASP Top 10 v0 (English→Haskell→Go)")
+
+	findings, err := owasp.ScanTree(cwd)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println()
+	fmt.Println(owasp.FormatReport(findings))
+	fmt.Println()
+
+	block := owasp.BlocksGate(findings)
+	disposition := "record"
+	switch {
+	case block:
+		disposition = "block"
+		axiom("F4", "disposition", "block — High/Critical under V")
+	case len(findings) > 0:
+		disposition = "advise"
+		axiom("F4", "disposition", "advise — findings present, none High/Critical")
+	default:
+		axiom("F4", "disposition", "record — Clean under current V")
+	}
+
+	fmt.Printf("control_point: changeset\n")
+	fmt.Printf("disposition:   %s\n", disposition)
+	fmt.Printf("V_policy:      OWASP-Top10-2021-v0\n")
+	fmt.Printf("findings:      %d\n", len(findings))
+	fmt.Println("╚══════════════════════════════════════════════╝")
+
+	if seal {
+		led, err := ledger.Open(findLedger(cwd))
+		if err != nil {
+			return findings, err
+		}
+		_, _ = led.Append("frontier-git", "exam.owasp", map[string]any{
+			"policy":       "OWASP-Top10-2021-v0",
+			"control":      "changeset",
+			"disposition":  disposition,
+			"findings":     len(findings),
+			"blocks_gate":  block,
+		})
+		axiom("F0", "ledger.append", "exam.owasp sealed")
+	}
+	axiom("F4", "exam.done", fmt.Sprintf("%d finding(s)", len(findings)))
+	return findings, nil
+}
+
+func printMockImport() {
+	fmt.Println(`╔══════════════════════════════════════════════╗
+║   MOCK V-IMPORTER (discussion → visible)     ║
+║   Source seed: cyber skill table + OWASP     ║
+╚══════════════════════════════════════════════╝
+id                        control_point   disposition  note
+------------------------  --------------  -----------  ----
+CAPEC-66                  changeset       block        SQLi — gateable now (in Go V)
+CAPEC-63                  changeset       block        XSS — partially gateable
+OWASP-A01..A10            changeset       block/advise Top10 v0 implemented
+PENT-DOMAIN-WEB           catalog         record       umbrella; speciate later
+PENT-DOMAIN-API           catalog         record       umbrella
+PENT-DOMAIN-AD            engagement      record       needs confirm / not push-regex
+PENT-DOMAIN-NET           engagement      record       runtime/engagement
+PENT-DOMAIN-CLOUD         review          advise       often config/IaC later
+PENT-DOMAIN-LLM           changeset       advise       some patterns gateable later
+PENT-DOMAIN-MCP           changeset       advise       tool-abuse patterns later
+ATTCK-TA0043              catalog         record       recon knowledge
+ATTCK-TA0001              engagement      record       initial access confirm
+ATTCK-TA0006              engagement      record       credential access
+ATTCK-TA0008              engagement      record       lateral movement
+ATTCK-TA0040              engagement      record       impact
+
+Legend:
+  changeset  = git frontier exam/gate
+  review     = PR / human
+  runtime    = deployed system
+  engagement = offensive confirm (Argus-style later)
+  catalog    = in V as knowledge only until materialized
+
+Next real importer: harvest MITRE/CWE/CAPEC → same columns → Haskell V.
+╚══════════════════════════════════════════════╝`)
+}
+
 func runGate(cwd string, exitNonZero bool) {
 	axiom("F0", "gate.start", "opening ledger (evidence before remote mutate)")
 	repo := gitx.Repo{Dir: cwd}
@@ -228,15 +320,11 @@ func runGate(cwd string, exitNonZero bool) {
 	h, _ := repo.RevParseHead()
 	p, _ := repo.StatusPorcelain()
 
-	axiom("F4", "exam.start", "OWASP Top 10 policy V — scan change tree at maximum / at least once")
-	findings, err := owasp.ScanTree(cwd)
+	findings, err := runExam(cwd, true)
 	if err != nil {
 		fail(err)
 		return
 	}
-	report := owasp.FormatReport(findings)
-	fmt.Println(report)
-	axiom("F4", "exam.done", fmt.Sprintf("%d finding(s) under current V", len(findings)))
 
 	g := policy.EvaluatePushGate(b, h, p, false)
 	if owasp.BlocksGate(findings) {
@@ -253,12 +341,6 @@ func runGate(cwd string, exitNonZero bool) {
 		fail(err)
 		return
 	}
-	_, _ = led.Append("frontier-git", "exam.owasp", map[string]any{
-		"policy":   "OWASP-Top10-2021-v0",
-		"findings": len(findings),
-		"blocked":  owasp.BlocksGate(findings),
-	})
-	axiom("F0", "ledger.append", "exam.owasp sealed")
 
 	sealed, err := policy.SealGate(led, "frontier-git", g)
 	if err != nil {
@@ -267,7 +349,7 @@ func runGate(cwd string, exitNonZero bool) {
 	}
 	if sealed.OK {
 		axiom("F0", "gate.passed", sealed.SealHash)
-		axiom("F2", "ready", "authorized human may push as Executor after elevate path")
+		axiom("F2", "ready", "authorized human may push")
 	} else {
 		axiom("F0", "gate.failed", strings.Join(sealed.Reasons, "; "))
 		axiom("F3", "continuity", "gate remains enforced; no bypass")
