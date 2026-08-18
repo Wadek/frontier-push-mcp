@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"os/exec"
@@ -197,18 +199,35 @@ func findLedger(cwd string) string {
 	if v := os.Getenv("FRONTIER_LEDGER"); v != "" {
 		return v
 	}
+	// Prefer in-repo ledger only if it already exists (user opted in).
 	dir := cwd
 	for {
 		cand := filepath.Join(dir, ".frontier", "ledger.jsonl")
-		if _, err := os.Stat(filepath.Join(dir, ".git")); err == nil {
+		if _, err := os.Stat(cand); err == nil {
 			return cand
+		}
+		if _, err := os.Stat(filepath.Join(dir, ".git")); err == nil {
+			break
 		}
 		parent := filepath.Dir(dir)
 		if parent == dir {
-			return filepath.Join(cwd, ".frontier", "ledger.jsonl")
+			break
 		}
 		dir = parent
 	}
+	// Default: ledger OUTSIDE the work tree so evidence never dirties the diff.
+	// (Local-first, still on disk — not cloud.)
+	sum := sha256Short(cwd)
+	root := os.Getenv("FRONTIER_HOME")
+	if root == "" {
+		root = filepath.Join("D:\\frontier", "ledgers")
+	}
+	return filepath.Join(root, sum, "ledger.jsonl")
+}
+
+func sha256Short(s string) string {
+	sum := sha256.Sum256([]byte(strings.ToLower(filepath.Clean(s))))
+	return hex.EncodeToString(sum[:8])
 }
 
 func findRealGit() string {
