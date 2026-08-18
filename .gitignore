@@ -1,0 +1,5 @@
+/frontier-mcp
+/frontier-mcp.exe
+*.exe
+.frontier/
+dist/

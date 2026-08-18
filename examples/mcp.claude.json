@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "frontier-push": {
+      "command": "frontier-mcp",
+      "args": [],
+      "env": {
+        "FRONTIER_REPO": "/ABS/PATH/TO/REPO",
+        "FRONTIER_LEDGER": "/ABS/PATH/TO/REPO/.frontier/ledger.jsonl",
+        "FRONTIER_ROLE": "observer"
+      }
+    }
+  }
+}
