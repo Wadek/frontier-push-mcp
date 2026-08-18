@@ -82,6 +82,8 @@ Same idea in English (`english/AXIOMS.md`), Haskell (`Frontier.Role`), and Go (`
 | [english/LANGUAGE.md](english/LANGUAGE.md) | English · Haskell · Go (+ draft in any) |
 | [english/MINIMALITY.md](english/MINIMALITY.md) | Least code; reverse-engineer pushes |
 | [english/CONTRIBUTING.md](english/CONTRIBUTING.md) | How to contribute without noise |
+| [english/CUSTOMER_JOURNEY.md](english/CUSTOMER_JOURNEY.md) | Using Frontier on vibe-coded apps |
+| [english/CUSTOMER_DVNA_BASELINE.md](english/CUSTOMER_DVNA_BASELINE.md) | First customer (DVNA) baseline |
 | [english/AXIOMS.md](english/AXIOMS.md) | Laws F0–F5 in English |
 | [haskell/](haskell/) | Laws as pure Haskell |
 | [cmd/frontier-git](cmd/frontier-git) | Go: `git` interface (`git frontier demo`) |

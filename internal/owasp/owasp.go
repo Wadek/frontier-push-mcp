@@ -69,17 +69,20 @@ func ScanTree(root string) ([]Finding, error) {
 }
 
 func scannable(path string) bool {
+	base := strings.ToLower(filepath.Base(path))
+	// Vendor / minified noise burns tokens and is not "our" vibe code.
+	if strings.HasSuffix(base, ".min.js") || strings.HasSuffix(base, ".min.css") {
+		return false
+	}
 	ext := strings.ToLower(filepath.Ext(path))
 	switch ext {
 	case ".go", ".py", ".js", ".ts", ".tsx", ".jsx", ".rb", ".php", ".java", ".cs",
 		".sh", ".bash", ".ps1", ".yml", ".yaml", ".json", ".env", ".dockerfile", "":
-		base := strings.ToLower(filepath.Base(path))
 		if base == "dockerfile" || strings.HasPrefix(base, "dockerfile.") {
 			return true
 		}
 		return ext != "" || base == "dockerfile"
 	default:
-		base := strings.ToLower(filepath.Base(path))
 		return base == "dockerfile"
 	}
 }
