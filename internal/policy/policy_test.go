@@ -26,3 +26,12 @@ func TestEvaluatePushGate_OK(t *testing.T) {
 		t.Fatalf("expected ok, got %v", g.Reasons)
 	}
 }
+
+func TestDirtyPorcelain_IgnoresFrontier(t *testing.T) {
+	if DirtyPorcelain("?? .frontier/ledger.jsonl\n") {
+		t.Fatal(".frontier should be ignored")
+	}
+	if !DirtyPorcelain(" M README.md\n?? .frontier/ledger.jsonl\n") {
+		t.Fatal("real dirty file should count")
+	}
+}

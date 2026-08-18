@@ -38,11 +38,31 @@ Simple models stay on Observer/Analyst. Bigger models earn Operator/Executor thr
 git clone https://github.com/Wadek/frontier-push-mcp.git
 cd frontier-push-mcp
 go build -o frontier-mcp ./cmd/frontier-mcp
+go build -o frontier-git ./cmd/frontier-git   # PATH shim over real git
 
-# run against a git repo you want to teach on
+# run MCP against a git repo you want to teach on
 export FRONTIER_REPO=/path/to/your/repo
 ./frontier-mcp
 ```
+
+### frontier-git (use our security as daily git)
+
+```powershell
+go build -o D:\frontier\bin\frontier-git.exe ./cmd/frontier-git
+$env:Path = "D:\frontier\bin;" + $env:Path
+$env:FRONTIER_GIT_BIN = "C:\Program Files\Git\cmd\git.exe"
+$env:FRONTIER_SOFT = "1"   # learn mode; remove when ready
+
+frontier-git frontier explain
+frontier-git checkout -b frontier/topic
+# ... edit ...
+frontier-git add -A; frontier-git commit -m "msg"
+frontier-git frontier gate
+frontier-git push -u origin HEAD
+```
+
+Upstream git source for study (not required to run): `D:\frontier\src\git`  
+Learn path: [`teach/LEARN_GIT.md`](teach/LEARN_GIT.md) — kernels / “linux frontier” come *after* this is boring.
 
 ### Claude Desktop / Cursor / Grok MCP config (stdio)
 

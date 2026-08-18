@@ -31,10 +31,32 @@ type GateResult struct {
 
 const gateTTL = 15 * time.Minute
 
+// DirtyPorcelain reports whether porcelain output has real changes,
+// ignoring Frontier's own ledger/metadata under .frontier/.
+func DirtyPorcelain(porcelain string) bool {
+	for _, line := range strings.Split(porcelain, "\n") {
+		line = strings.TrimRight(line, "\r")
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		// porcelain: XY<space>path (path starts at index 3 when standard)
+		path := line
+		if len(line) >= 3 {
+			path = strings.TrimSpace(line[3:])
+		}
+		path = strings.TrimPrefix(path, "\"")
+		if strings.HasPrefix(path, ".frontier/") || path == ".frontier" {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
 // EvaluatePushGate is local-first and cheap: no model calls.
 func EvaluatePushGate(branch, head, porcelain string, allowDirty bool) GateResult {
 	var reasons []string
-	dirty := strings.TrimSpace(porcelain) != ""
+	dirty := DirtyPorcelain(porcelain)
 	if branch == "" {
 		reasons = append(reasons, "detached HEAD or empty branch")
 	}

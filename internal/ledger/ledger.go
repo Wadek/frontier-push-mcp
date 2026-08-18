@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -31,15 +32,39 @@ func Open(path string) (*Ledger, error) {
 	if path == "" {
 		return nil, fmt.Errorf("ledger path required")
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, err
 	}
+	// Keep Frontier metadata out of git diffs / dirty checks.
+	_ = ensureGitignore(filepath.Dir(dir), ".frontier/")
 	f, err := os.OpenFile(path, os.O_CREATE, 0o644)
 	if err != nil {
 		return nil, err
 	}
 	_ = f.Close()
 	return &Ledger{path: path}, nil
+}
+
+func ensureGitignore(repoRoot, entry string) error {
+	gi := filepath.Join(repoRoot, ".gitignore")
+	b, err := os.ReadFile(gi)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	if strings.Contains(string(b), entry) {
+		return nil
+	}
+	f, err := os.OpenFile(gi, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if len(b) > 0 && b[len(b)-1] != '\n' {
+		_, _ = f.WriteString("\n")
+	}
+	_, err = f.WriteString(entry + "\n")
+	return err
 }
 
 func (l *Ledger) Append(actor, action string, payload map[string]any) (*Entry, error) {
