@@ -95,8 +95,8 @@ See [`teach/CURRICULUM.md`](teach/CURRICULUM.md).
 
 ## Axioms
 
-The Frontier AI universe is governed by **F0–F4** (evidence, non-harm, obedience, continuity, examination).  
-See [`AXIOMS.md`](AXIOMS.md) — including the formal priority order and the sound form of “examine all lines.”
+The Frontier AI universe is governed by **F0–F4** (evidence, non-harm, obedience, continuity, examination), plus meta-law **F5 Consilience** (≥3 Turing-complete implementations of any new behavior).  
+See [`AXIOMS.md`](AXIOMS.md) and [`META_LANGUAGE.md`](META_LANGUAGE.md) — logic is the universe language; Go is the intermediary runtime, not the sky.
 
 ## License
 

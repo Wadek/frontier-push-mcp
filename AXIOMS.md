@@ -29,6 +29,8 @@ They are meant to be **locally checkable**, **order-total**, and **simple** — 
 **F0 ≻ F1 ≻ F2 ≻ F3 ≻ F4**  
 (higher wins; a lower axiom never licenses violating a higher one)
 
+**Meta-law (admission to the universe, not a runtime override):** **F5 Consilience** — see below and [`META_LANGUAGE.md`](META_LANGUAGE.md).
+
 ---
 
 ## Frontier Axiom F0 — Continuity of Evidence *(meta / zeroth)*
@@ -239,12 +241,26 @@ Expanding `V` is how the Frontier gets stricter without rewriting F1–F3.
 
 ---
 
+## Frontier Meta-Axiom F5 — Consilience (Triple Compilation)
+
+**A new Frontier behavior is not admitted until it is stated in the universe language (logic/math) and successfully implemented in at least three Turing-complete languages with the same ledger-visible effects.**
+
+```
+Admit(B) ⇒ Spec(B) ∈ Logic  ∧  ∃ three TC ports that Compile∧Test∧Agree(B)
+```
+
+Go is an excellent *port*, not the ontology. Agents should converse in **facts + rules**; see [`META_LANGUAGE.md`](META_LANGUAGE.md).
+
+---
+
 ## Open points (ideate later)
 
 - Formalize `Harm` for cyber-physical vs informational injury.  
 - Dual-control `Authorized(H)` for Executor.  
 - Speciation: child skills inherit F0–F4 with *narrower* scope (never wider).  
 - On-disk schema for `V` (append-only defs, same as ledger spirit).  
-- When `V` grows, batch re-exam policy for previously Clean artifacts (lazy vs eager).
+- When `V` grows, batch re-exam policy for previously Clean artifacts (lazy vs eager).  
+- Choose third TC witness: Rust (sandbox) vs Prolog (lawfulness).  
+- Embed Datalog evaluator so Go/Python/Rust share one `logic/` tree.
 
-These axioms are part of the Frontier Push MCP teaching universe: models should recite F0–F4 before elevate/push drills.
+These axioms are part of the Frontier Push MCP teaching universe: models should recite F0–F4 before elevate/push drills; F5 binds *us* as builders of the universe.
