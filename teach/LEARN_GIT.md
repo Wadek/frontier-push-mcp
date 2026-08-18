@@ -14,65 +14,63 @@ First we wrap **git** (the tool everyone already pretends to know). Kernels / �
 Reading `builtin/push.c` in the source tree teaches how push works.  
 Using `frontier-git` teaches **when you are allowed to push**.
 
-## Install the shim (Windows PowerShell)
+## Install — the interface **is** `git`
+
+Frontier installs a shim named `git.exe` ahead of system git on your PATH.  
+You never need a special command name. Same muscle memory as everyone else.
 
 ```powershell
 $env:Path = "C:\Users\waka\sdk\go\bin;C:\Program Files\Git\cmd;" + $env:Path
 cd C:\Users\waka\src\frontier-push-mcp
 go build -o D:\frontier\bin\frontier-git.exe ./cmd/frontier-git
+Copy-Item -Force D:\frontier\bin\frontier-git.exe D:\frontier\bin\git.exe
 
-# put Frontier bin FIRST on PATH for this shell
-$env:Path = "D:\frontier\bin;" + $env:Path
-$env:FRONTIER_GIT_BIN = "C:\Program Files\Git\cmd\git.exe"
+# real engine
+[Environment]::SetEnvironmentVariable("FRONTIER_GIT_BIN", "C:\Program Files\Git\cmd\git.exe", "User")
+# put D:\frontier\bin first on User PATH (one-time)
+# then open a NEW terminal
 
-# learning mode (warn, don't block) — turn OFF when ready
-$env:FRONTIER_SOFT = "1"
-
-frontier-git frontier explain
-frontier-git --version   # should show real git version via passthrough
-```
-
-Optional: create an alias so typing `git` means Frontier:
-
-```powershell
-Set-Alias git frontier-git -Scope Process
+$env:FRONTIER_SOFT = "1"   # learn mode; remove when ready
+git frontier explain
+git --version
+Get-Command git   # should show D:\frontier\bin\git.exe
 ```
 
 ## Git basics as a Frontier ladder
 
-Think of normal git as three verbs. Frontier adds seals.
+The interface is ordinary git. Frontier adds seals on the dangerous verbs.
 
 ```
-  git status     ≈  observer   (frontier-git status / frontier status)
-  git diff       ≈  analyst
-  git commit     ≈  operator   (blocked on main/master)
-  git push       ≈  executor   (needs frontier gate)
+  git status              ≈  observer
+  git diff                ≈  analyst
+  git commit              ≈  operator   (blocked on main/master)
+  git push                ≈  executor   (needs: git frontier gate)
+  git frontier status|gate|ledger|explain
 ```
 
 ### Drill 1 — observe
 
 ```powershell
 cd <your-repo>
-frontier-git status
-frontier-git frontier status
+git status
+git frontier status
 ```
 
 ### Drill 2 — branch (never commit on main)
 
 ```powershell
-frontier-git checkout -b frontier/learn-1
+git checkout -b frontier/learn-1
 # edit a file
-frontier-git add -A
-frontier-git commit -m "frontier: learning commit"
+git add -A
+git commit -m "frontier: learning commit"
 ```
 
 ### Drill 3 — gate then push
 
 ```powershell
-frontier-git frontier gate     # seals gate.passed or fails
-# if ok:
-$env:FRONTIER_SOFT = "0"       # real deny mode
-frontier-git push -u origin HEAD
+git frontier gate          # seals gate.passed or fails
+$env:FRONTIER_SOFT = "0"   # real deny mode
+git push -u origin HEAD
 ```
 
 If gate fails, read the reasons (dirty tree, on main, no seal). Fix; re-gate; push.
@@ -86,7 +84,7 @@ notepad builtin\push.c
 findstr /n "push" Documentation\git-push.txt
 ```
 
-You are learning **two** gits: the C program, and the Frontier *policy* around it.
+You are learning **two** gits: the C program, and the Frontier *policy* around the same `git` command.
 
 ## Roadmap (so kernels don’t scare you)
 

@@ -45,24 +45,24 @@ export FRONTIER_REPO=/path/to/your/repo
 ./frontier-mcp
 ```
 
-### frontier-git (use our security as daily git)
+### The interface is `git`
+
+Frontier ships a PATH shim also named `git`. You type normal git; high-blast verbs are gated.
 
 ```powershell
-go build -o D:\frontier\bin\frontier-git.exe ./cmd/frontier-git
-$env:Path = "D:\frontier\bin;" + $env:Path
-$env:FRONTIER_GIT_BIN = "C:\Program Files\Git\cmd\git.exe"
-$env:FRONTIER_SOFT = "1"   # learn mode; remove when ready
+go build -o D:\frontier\bin\git.exe ./cmd/frontier-git
+# FRONTIER_GIT_BIN=C:\Program Files\Git\cmd\git.exe
+# D:\frontier\bin first on PATH
 
-frontier-git frontier explain
-frontier-git checkout -b frontier/topic
-# ... edit ...
-frontier-git add -A; frontier-git commit -m "msg"
-frontier-git frontier gate
-frontier-git push -u origin HEAD
+git frontier explain
+git checkout -b frontier/topic
+git add -A; git commit -m "msg"
+git frontier gate
+git push -u origin HEAD
 ```
 
-Upstream git source for study (not required to run): `D:\frontier\src\git`  
-Learn path: [`teach/LEARN_GIT.md`](teach/LEARN_GIT.md) — kernels / “linux frontier” come *after* this is boring.
+Meta: `git frontier status|gate|ledger|explain`  
+Learn: [`teach/LEARN_GIT.md`](teach/LEARN_GIT.md) — kernels later.
 
 ### Claude Desktop / Cursor / Grok MCP config (stdio)
 

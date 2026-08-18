@@ -182,13 +182,19 @@ Env: FRONTIER_SOFT=1 (learn), FRONTIER_STRICT=1, FRONTIER_GIT_BIN, FRONTIER_LEDG
 			fmt.Printf("%d %s %s %s\n", r.Seq, r.TS, r.Actor, r.Action)
 		}
 	case "explain":
-		fmt.Println(`frontier-git is a PATH shim over real git.
+		fmt.Println(`You are talking to Frontier through the git interface.
+
+  Type:  git …              (this shim)
+  Engine: FRONTIER_GIT_BIN  (real git under the hood)
+
 Passthrough: almost all git commands.
-Guarded: push (needs Clean tree, feature branch, fresh gate.passed).
-         commit on main/master (denied unless FRONTIER_SOFT=1).
-Learning: set FRONTIER_SOFT=1 while you learn; then turn it off.
-Upstream git source (study): D:\frontier\src\git
-Kernels / "linux frontier": later — wrap userland first.`)
+Guarded: git push   — needs feature branch, clean tree, fresh gate
+         git commit — denied on main/master unless FRONTIER_SOFT=1
+
+Meta:    git frontier status|gate|ledger|explain
+Learn:   set FRONTIER_SOFT=1 then turn it off when ready
+Source:  D:\frontier\src\git  (upstream study copy)
+Kernels / "linux frontier": later — userland git first.`)
 	default:
 		fmt.Fprintf(os.Stderr, "unknown frontier subcommand %q\n", args[0])
 		os.Exit(2)
