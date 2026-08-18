@@ -11,6 +11,7 @@ import (
 
 	"github.com/Wadek/frontier-push-mcp/internal/gitx"
 	"github.com/Wadek/frontier-push-mcp/internal/ledger"
+	"github.com/Wadek/frontier-push-mcp/internal/owasp"
 	"github.com/Wadek/frontier-push-mcp/internal/policy"
 )
 
@@ -66,6 +67,7 @@ func main() {
 
 func guardPush(soft bool) error {
 	cwd, _ := os.Getwd()
+	axiom("F0", "push.start", "push requested — evidence + gate required")
 	repo := gitx.Repo{Dir: cwd}
 	branch, err := repo.Branch()
 	if err != nil {
@@ -74,15 +76,27 @@ func guardPush(soft bool) error {
 	head, _ := repo.RevParseHead()
 	por, _ := repo.StatusPorcelain()
 
-	// Always evaluate local gate rules (main/dirty/empty).
+	axiom("F4", "push.recheck_policy", "re-scan OWASP V before authorizing remote mutate")
+	findings, _ := owasp.ScanTree(cwd)
+	if verbose() {
+		fmt.Fprintln(os.Stderr, owasp.FormatReport(findings))
+	}
+
 	g := policy.EvaluatePushGate(branch, head, por, false)
+	if owasp.BlocksGate(findings) {
+		g.OK = false
+		g.Reasons = append(g.Reasons, "OWASP V: untriaged High/Critical finding(s)")
+		axiom("F4", "push.block", "High/Critical under V")
+	}
 	if !g.OK {
+		axiom("F0", "push.deny", strings.Join(g.Reasons, "; "))
 		msg := fmt.Sprintf("frontier deny push: %s", strings.Join(g.Reasons, "; "))
 		if soft {
 			fmt.Fprintln(os.Stderr, "WARNING:", msg, "(FRONTIER_SOFT=1 — allowing)")
+			axiom("F3", "soft_allow", "learning mode weakens continuity — turn FRONTIER_SOFT off")
 			return nil
 		}
-		return fmt.Errorf("%s\nhint: use a feature branch, commit cleanly, or: frontier-git frontier gate", msg)
+		return fmt.Errorf("%s\nhint: use a feature branch, commit cleanly, or: git frontier gate", msg)
 	}
 
 	ledPath := findLedger(cwd)
@@ -95,23 +109,27 @@ func guardPush(soft bool) error {
 		_, _ = led.Append("frontier-git", "push.denied", map[string]any{
 			"branch": branch, "head": head, "reason": detail,
 		})
+		axiom("F0", "push.deny", detail)
 		msg := fmt.Sprintf("frontier deny push: %s", detail)
 		if soft {
 			fmt.Fprintln(os.Stderr, "WARNING:", msg, "(FRONTIER_SOFT=1 — allowing)")
 			_, _ = led.Append("frontier-git", "push.soft_allow", map[string]any{"branch": branch, "head": head})
 			return nil
 		}
-		return fmt.Errorf("%s\nrun: frontier-git frontier gate\nthen retry push", msg)
+		return fmt.Errorf("%s\nrun: git frontier gate\nthen retry push", msg)
 	}
 	_, _ = led.Append("frontier-git", "push.authorized", map[string]any{
-		"branch": branch, "head": head, "gate": detail,
+		"branch": branch, "head": head, "gate": detail, "owasp_findings": len(findings),
 	})
+	axiom("F0", "push.authorized", detail)
+	axiom("F2", "push.execute", "passing through to real git push")
 	fmt.Fprintln(os.Stderr, "frontier: push authorized (gate ok)")
 	return nil
 }
 
 func guardCommit(args []string, soft, strict bool) error {
 	cwd, _ := os.Getwd()
+	axiom("F0", "commit.start", "commit is Operator-level; evidence path continues in ledger on gate")
 	repo := gitx.Repo{Dir: cwd}
 	branch, err := repo.Branch()
 	if err != nil {
@@ -119,6 +137,7 @@ func guardCommit(args []string, soft, strict bool) error {
 	}
 	onMain := strings.EqualFold(branch, "main") || strings.EqualFold(branch, "master")
 	if onMain {
+		axiom("F1", "commit.deny_main", "direct commits on main expand blast radius")
 		msg := "frontier deny commit on main/master — create a feature branch first (git checkout -b frontier/...)"
 		if soft {
 			fmt.Fprintln(os.Stderr, "WARNING:", msg, "(FRONTIER_SOFT=1 — allowing)")
@@ -159,25 +178,7 @@ Env: FRONTIER_SOFT=1 (learn), FRONTIER_STRICT=1, FRONTIER_GIT_BIN, FRONTIER_LEDG
 		fmt.Printf("cwd: %s\nbranch: %s\ndirty: %v\nledger: %s\nreal_git: %s\nsoft: %v\n",
 			cwd, b, policy.DirtyPorcelain(p), findLedger(cwd), findRealGit(), os.Getenv("FRONTIER_SOFT") == "1")
 	case "gate":
-		repo := gitx.Repo{Dir: cwd}
-		b, _ := repo.Branch()
-		h, _ := repo.RevParseHead()
-		p, _ := repo.StatusPorcelain()
-		g := policy.EvaluatePushGate(b, h, p, false)
-		led, err := ledger.Open(findLedger(cwd))
-		if err != nil {
-			fail(err)
-			return
-		}
-		sealed, err := policy.SealGate(led, "frontier-git", g)
-		if err != nil {
-			fail(err)
-			return
-		}
-		fmt.Printf("ok=%v seal=%s reasons=%v\nbranch=%s head=%s\n", sealed.OK, sealed.SealHash, sealed.Reasons, sealed.Branch, sealed.Head)
-		if !sealed.OK {
-			os.Exit(2)
-		}
+		runGate(cwd, true)
 	case "ledger":
 		led, err := ledger.Open(findLedger(cwd))
 		if err != nil {
@@ -208,6 +209,71 @@ Minimality: least code that still proves the result.
 Learn:   set FRONTIER_SOFT=1 then turn it off when ready`)
 	default:
 		fmt.Fprintf(os.Stderr, "unknown frontier subcommand %q\n", args[0])
+		os.Exit(2)
+	}
+}
+
+func axiom(id, when, detail string) {
+	fmt.Fprintf(os.Stderr, "AXIOM %-4s | %-28s | %s\n", id, when, detail)
+}
+
+func verbose() bool {
+	return os.Getenv("FRONTIER_VERBOSE") == "1" || os.Getenv("FRONTIER_VERBOSE") == "true"
+}
+
+func runGate(cwd string, exitNonZero bool) {
+	axiom("F0", "gate.start", "opening ledger (evidence before remote mutate)")
+	repo := gitx.Repo{Dir: cwd}
+	b, _ := repo.Branch()
+	h, _ := repo.RevParseHead()
+	p, _ := repo.StatusPorcelain()
+
+	axiom("F4", "exam.start", "OWASP Top 10 policy V — scan change tree at maximum / at least once")
+	findings, err := owasp.ScanTree(cwd)
+	if err != nil {
+		fail(err)
+		return
+	}
+	report := owasp.FormatReport(findings)
+	fmt.Println(report)
+	axiom("F4", "exam.done", fmt.Sprintf("%d finding(s) under current V", len(findings)))
+
+	g := policy.EvaluatePushGate(b, h, p, false)
+	if owasp.BlocksGate(findings) {
+		g.OK = false
+		g.Reasons = append(g.Reasons, "OWASP V: untriaged High/Critical finding(s)")
+		axiom("F4", "exam.block", "High/Critical under V blocks gate")
+	}
+	if strings.EqualFold(b, "main") || strings.EqualFold(b, "master") {
+		axiom("F1", "harm.boundary", "refuse direct ship to main/master (blast radius)")
+	}
+
+	led, err := ledger.Open(findLedger(cwd))
+	if err != nil {
+		fail(err)
+		return
+	}
+	_, _ = led.Append("frontier-git", "exam.owasp", map[string]any{
+		"policy":   "OWASP-Top10-2021-v0",
+		"findings": len(findings),
+		"blocked":  owasp.BlocksGate(findings),
+	})
+	axiom("F0", "ledger.append", "exam.owasp sealed")
+
+	sealed, err := policy.SealGate(led, "frontier-git", g)
+	if err != nil {
+		fail(err)
+		return
+	}
+	if sealed.OK {
+		axiom("F0", "gate.passed", sealed.SealHash)
+		axiom("F2", "ready", "authorized human may push as Executor after elevate path")
+	} else {
+		axiom("F0", "gate.failed", strings.Join(sealed.Reasons, "; "))
+		axiom("F3", "continuity", "gate remains enforced; no bypass")
+	}
+	fmt.Printf("ok=%v seal=%s reasons=%v\nbranch=%s head=%s\n", sealed.OK, sealed.SealHash, sealed.Reasons, sealed.Branch, sealed.Head)
+	if !sealed.OK && exitNonZero {
 		os.Exit(2)
 	}
 }
