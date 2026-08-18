@@ -41,6 +41,18 @@ git frontier explain
 
 ---
 
+## Two ways to run the same tool
+
+| How | Example |
+|-----|---------|
+| **With git** (daily) | `git frontier plan` |
+| **Standalone** | `frontier plan` or `frontier V` |
+
+Same engine. Not `go frontier` — `go` is the Go *language toolchain* (`go build`, `go test`).  
+During development you *may* run `go run ./cmd/frontier V` (that means “run this package,” not a Go subcommand).
+
+---
+
 ## Terraform-like flow
 
 ```powershell
@@ -49,27 +61,26 @@ git checkout -b frontier/topic
 git add -A
 git commit -m "msg"
 
-git frontier plan     # preview V — FAIL stops everything
-git frontier apply    # seal authorization — only if plan passed
-git push              # only if apply sealed gate.passed
+git frontier plan     # or: frontier plan
+git frontier apply    # or: frontier apply
+git push
 ```
 
 | Command | Like Terraform | What it does |
 |---------|----------------|--------------|
-| `git frontier plan` | `terraform plan` | Run **V**; preview ship; **exit ≠ 0** if block |
-| `git frontier apply` | `terraform apply` | Authorize push **only** after fresh `plan.passed` |
-| `git push` | apply to remote | Real git; Frontier denies without sealed apply |
+| `frontier plan` / `git frontier plan` | `terraform plan` | Run **V**; preview; **exit ≠ 0** if block |
+| `frontier apply` / `git frontier apply` | `terraform apply` | Authorize push only after `plan.passed` |
+| `git push` | mutate remote | Denied without sealed apply |
 | Ledger | state | Evidence of plan/apply (F0) |
 
 Also:
 
 ```text
-git frontier V              # vulnerabilities exam (alias: exam)
-git frontier S              # slim stub — planned, not enforced
-git frontier mock-import    # mock V-importer list
+frontier V                 # vulnerabilities exam
+frontier S                 # slim stub — planned
+frontier mock-import       # mock V-importer
 git frontier demo|ledger|status|explain
 ```
-
 ---
 
 ## Repo map

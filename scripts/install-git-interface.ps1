@@ -16,6 +16,7 @@ $env:GOROOT = "C:\Users\waka\sdk\go"
 
 Push-Location $Repo
 go build -o "$Bin\frontier-git.exe" ./cmd/frontier-git
+go build -o "$Bin\frontier.exe" ./cmd/frontier
 Copy-Item -Force "$Bin\frontier-git.exe" "$Bin\git.exe"
 Pop-Location
 
@@ -26,8 +27,10 @@ $newPath = ($Bin + ';' + ($parts -join ';')).TrimEnd(';')
 [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
 
 Write-Host "Installed."
-Write-Host "  shim:  $Bin\git.exe"
-Write-Host "  engine: $RealGit"
+Write-Host "  git shim:  $Bin\git.exe"
+Write-Host "  frontier:  $Bin\frontier.exe   (standalone: frontier V | plan | apply)"
+Write-Host "  engine:    $RealGit"
 Write-Host "Open a NEW terminal, then run:"
 Write-Host "  git frontier explain"
-Write-Host "  Get-Command git"
+Write-Host "  frontier V"
+Write-Host "  Get-Command git, frontier"
