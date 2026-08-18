@@ -77,7 +77,7 @@ func scannable(path string) bool {
 	ext := strings.ToLower(filepath.Ext(path))
 	switch ext {
 	case ".go", ".py", ".js", ".ts", ".tsx", ".jsx", ".rb", ".php", ".java", ".cs",
-		".sh", ".bash", ".ps1", ".yml", ".yaml", ".json", ".env", ".dockerfile", "":
+		".sh", ".bash", ".ps1", ".yml", ".yaml", ".json", ".env", ".pem", ".key", ".dockerfile", "":
 		if base == "dockerfile" || strings.HasPrefix(base, "dockerfile.") {
 			return true
 		}
