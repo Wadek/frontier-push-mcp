@@ -27,13 +27,15 @@ type rule struct {
 var rules = []rule{
 	{"owasp.a01.hardcoded_auth_bypass", "A01", "High", regexp.MustCompile(`(?i)(if\s*\(.*(?:user|role|auth).*(?:==|!=)\s*["']admin["'])|bypass[_-]?auth|skip[_-]?auth`)},
 	{"owasp.a02.secret_material", "A02", "Critical", regexp.MustCompile(`BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY|AKIA[0-9A-Z]{16}`)},
-	{"owasp.a03.injection_sink", "A03", "High", regexp.MustCompile(`(?i)(SELECT\s+.+\s*\+|os\.system\s*\(|subprocess\.[a-z]+\([^)]*shell\s*=\s*True|eval\s*\(|exec\s*\()`)},
+	// Note: bare `.exec(` (e.g. better-sqlite3 db.exec DDL) is NOT a sink — require classic injection shapes.
+	{"owasp.a03.injection_sink", "A03", "High", regexp.MustCompile(`(?i)(SELECT\s+.+\s*\+|os\.system\s*\(|subprocess\.[a-z]+\([^)]*shell\s*=\s*True|[^.\w]eval\s*\(|Runtime\.getRuntime\(\)\.exec\s*\(|child_process|shell\s*=\s*True)`)},
 	{"owasp.a04.insecure_flag", "A04", "Medium", regexp.MustCompile(`(?i)(VERIFY_NONE|InsecureSkipVerify\s*[:=]\s*true|csrf\s*=\s*False|SSL_VERIFYPEER.*false)`)},
 	{"owasp.a05.misconfig", "A05", "Medium", regexp.MustCompile(`(?i)(debug\s*=\s*True|APP_DEBUG\s*=\s*true|NODE_ENV\s*=\s*development.*=\s*true)`)},
 	{"owasp.a06.unpinned_latest", "A06", "Medium", regexp.MustCompile(`(?i)^FROM\s+\S+:latest\b`)},
 	{"owasp.a07.hardcoded_credential", "A07", "High", regexp.MustCompile(`(?i)(password\s*=\s*["'][^"']{3,}["']|api[_-]?key\s*=\s*["'][^"']{8,}["']|secret\s*=\s*["'][^"']{8,}["']|jwt[_-]?secret\s*=\s*["'])`)},
 	{"owasp.a08.curl_bash", "A08", "High", regexp.MustCompile(`(?i)curl\s+[^\n|]*\|\s*(ba)?sh`)},
-	{"owasp.a09.sensitive_log", "A09", "Medium", regexp.MustCompile(`(?i)(log.*(password|passwd|authorization)|console\.(log|debug)\(.*authorization)`)},
+	// Avoid HTML autocomplete="…password…" false positives — require log/console context.
+	{"owasp.a09.sensitive_log", "A09", "Medium", regexp.MustCompile(`(?i)((console\.(log|debug|info|warn)|logger\.[a-z]+|log\.(info|debug|warn|error))\([^;]*(password|passwd|authorization)|log\s*\([^;]*(password|passwd)\s*[:=])`)},
 	{"owasp.a10.open_url_fetch", "A10", "Medium", regexp.MustCompile(`(?i)(requests\.(get|post)\(\s*(url|user)|urllib\.request\.urlopen\(\s*(url|user)|fetch\(\s*[a-z_]+\s*\))`)},
 }
 
