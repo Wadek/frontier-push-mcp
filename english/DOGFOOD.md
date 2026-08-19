@@ -1,6 +1,6 @@
 # Dogfood — take our own medicine
 
-We develop **Frontier Push MCP** using Frontier itself.
+We develop **Frontier Ship** using Frontier itself.
 
 That is how we test the tool: if we cannot ship our own changes through `plan → apply → push`, customers will not either.
 

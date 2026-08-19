@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Wadek/frontier-push-mcp/internal/fronticli"
+	"github.com/Wadek/frontier-ship/internal/fronticli"
 )
 
 // Set by release ldflags.

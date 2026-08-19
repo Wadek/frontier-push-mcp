@@ -1,7 +1,7 @@
 from pathlib import Path
 
-src = Path(r"C:\Users\waka\src\frontier-push-mcp\cmd\frontier-git\main.go")
-dst = Path(r"C:\Users\waka\src\frontier-push-mcp\internal\fronticli\cli.go")
+src = Path(r"C:\Users\waka\src\frontier-ship\cmd\frontier-git\main.go")
+dst = Path(r"C:\Users\waka\src\frontier-ship\internal\fronticli\cli.go")
 t = src.read_text(encoding="utf-8")
 t = t.replace("package main", "package fronticli", 1)
 

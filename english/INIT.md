@@ -23,14 +23,14 @@ You do **not** install a new operating system.
 ## Step 1 — Get the code
 
 ```text
-git clone https://github.com/Wadek/frontier-push-mcp.git
-cd frontier-push-mcp
+git clone https://github.com/Wadek/frontier-ship.git
+cd frontier-ship
 ```
 
 If Frontier `git` is already on your PATH, and it blocks cloning quirks, use the real engine once:
 
 ```text
-& "C:\Program Files\Git\cmd\git.exe" clone https://github.com/Wadek/frontier-push-mcp.git
+& "C:\Program Files\Git\cmd\git.exe" clone https://github.com/Wadek/frontier-ship.git
 ```
 
 ---
