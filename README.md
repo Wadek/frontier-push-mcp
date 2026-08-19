@@ -23,9 +23,13 @@ Local first. Simple is better. Fail closed — like Terraform: **nothing goes if
 |--------|------|---------|
 | **L** | **Learn** | Ingest + classify a project before change (first phase of Slim). |
 | **G** | **Guard** | Security (OWASP / secret surfaces / adapters). Examined at **changeset**. High/Critical → **block**. |
-| **S** | **Slim** | **Planned:** reduce vibe-code bloat. Advise first; optional block later. **Not enforced yet.** |
+| **S** | **Slim** | **Planned:** reduce vibe-code bloat. Advise first; optional block later. |
+| **O** | **Optimize** | **Planned:** behavior-preserving speed; report in small PRs. |
 
-Today: **Learn + Guard.** Slim is on the roadmap. Prefer full words in scripts (`frontier guard`); letters are aliases (`G`).
+**Onboarding (not a letter family):** `frontier scm` — detect/init/connect version control when the customer has none ([english/SCM.md](english/SCM.md)).
+
+Order: **scm (if needed) → Learn → Guard → Slim → Optimize.**  
+Prefer full words in scripts; letters are aliases. See [english/O_OPTIMIZE.md](english/O_OPTIMIZE.md).
 
 ---
 
@@ -78,11 +82,13 @@ git push
 Also:
 
 ```text
+frontier scm status        # VCS / remote detection (onboarding)
 frontier learn             # L — classify this project
 frontier guard             # G — security exam + secret surfaces
 frontier guard list        # scanners: owasp-v0, checkov, …
 frontier enhance guard     # programmatic pack + lean brief for host model
 frontier slim              # S — planned
+frontier optimize          # O — planned (behavior-preserving speed)
 frontier mock-import       # mock importer
 git frontier demo|ledger|status|explain
 ```
@@ -93,8 +99,11 @@ git frontier demo|ledger|status|explain
 | Path | What |
 |------|------|
 | [english/INIT.md](english/INIT.md) | Start here |
-| [english/V_IMPLEMENTATION.md](english/V_IMPLEMENTATION.md) | How V works |
-| [english/SECURITY_POLICY_OWASP.md](english/SECURITY_POLICY_OWASP.md) | V policy (OWASP) |
+| [english/L_LEARN.md](english/L_LEARN.md) | Learn (L) |
+| [english/V_IMPLEMENTATION.md](english/V_IMPLEMENTATION.md) | Guard (G) |
+| [english/O_OPTIMIZE.md](english/O_OPTIMIZE.md) | Optimize (O) |
+| [english/SCM.md](english/SCM.md) | SCM onboarding |
+| [english/SECURITY_POLICY_OWASP.md](english/SECURITY_POLICY_OWASP.md) | Guard policy (OWASP) |
 | [english/CUSTOMER_JOURNEY.md](english/CUSTOMER_JOURNEY.md) | Takeover / vibe-code use |
 | [english/SCORING_AND_BENCHMARKS.md](english/SCORING_AND_BENCHMARKS.md) | Official score meaning |
 | [haskell/](haskell/) | Proof form of laws + OWASP |

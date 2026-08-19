@@ -171,10 +171,13 @@ func handleMeta(args []string) {
   frontier learn        L   — Learn / Landscape (classify before change)
   frontier guard        G   — Guard / security exam (OWASP + secret surfaces)
   frontier slim         S   — Slim / vibe-bloat (PLANNED — not enforced)
+  frontier optimize     O   — Optimize / behavior-preserving speed (PLANNED)
+
+  Onboarding (no letter):  frontier scm status|init|connect
 
   git frontier learn classify [path]
   git frontier guard list|checkov
-  git frontier enhance guard
+  git frontier enhance guard|optimize
   git frontier enhance status|seal
   git frontier mock-import
 
@@ -190,7 +193,7 @@ Env: FRONTIER_SOFT=1  FRONTIER_VERBOSE=1  FRONTIER_GIT_BIN  FRONTIER_LEDGER
 
 Nothing remote goes if plan/apply fails (like terraform).
 
-Same as standalone:  frontier learn | guard | slim | plan | apply
+Same as standalone:  frontier scm | learn | guard | slim | optimize | plan | apply
 (Not \"go frontier\" — go is the Go toolchain)`)
 		return
 	}
@@ -202,6 +205,8 @@ Same as standalone:  frontier learn | guard | slim | plan | apply
 		p, _ := repo.StatusPorcelain()
 		fmt.Printf("cwd: %s\nbranch: %s\ndirty: %v\nledger: %s\nreal_git: %s\nsoft: %v\n",
 			cwd, b, policy.DirtyPorcelain(p), findLedger(cwd), findRealGit(), os.Getenv("FRONTIER_SOFT") == "1")
+	case "scm":
+		runSCM(cwd, args[1:])
 	case "learn", "L", "l":
 		runLearn(cwd, args[1:])
 	case "guard", "G", "g", "exam":
@@ -221,6 +226,8 @@ Same as standalone:  frontier learn | guard | slim | plan | apply
 		runEnhance(cwd, args[1:])
 	case "slim", "S", "s":
 		printSlimStub()
+	case "optimize", "O", "o":
+		printOptimizeStub()
 	case "plan":
 		runPlan(cwd, true)
 	case "apply", "gate":
@@ -251,13 +258,17 @@ Terraform-like flow:
   git frontier apply   # authorize — only if plan passed
   git push             # only if apply/gate sealed
 
+Onboarding:
+  frontier scm         # VCS detect/init/connect (before Learn if needed)
+
 Policy families (word = primary, letter = alias):
-  Learn  (L)  — ingest + classify before change (first phase of Slim)
-  Guard  (G)  — security definitions (OWASP…) + secret surfaces; enforced at changeset
-  Slim   (S)  — vibe-code bloat reduction; PLANNED (not enforced yet)
+  Learn     (L)  — ingest + classify before change
+  Guard     (G)  — security + secret surfaces; enforced at changeset
+  Slim      (S)  — vibe-code bloat; PLANNED
+  Optimize  (O)  — behavior-preserving speed; PLANNED (report in small PRs)
 
 Enhance:
-  git frontier enhance guard   # programmatic first, lean brief for host model
+  frontier enhance guard | optimize
 
 Control points: changeset | review | runtime | engagement
 Languages: English · Haskell · Go
@@ -277,9 +288,67 @@ func printSlimStub() {
   Today:   use frontier guard (G) for security baseline
   Later:   frontier slim   will report budgets / dead code
   First:   frontier learn classify   (learn before slim)
+  After:   frontier optimize (O)     (speed without behavior change)
 
   Stick with:  frontier learn | guard | plan | apply | push
 ╚══════════════════════════════════════════════╝`)
+}
+
+func printOptimizeStub() {
+	fmt.Println(`╔══════════════════════════════════════════════╗
+║  Optimize (O) — PLANNED, not enforced yet    ║
+╚══════════════════════════════════════════════╝
+  Purpose: behavior-preserving speed (CS-grounded, simplest correct change)
+  After:   learn → guard → slim
+  Output:  developer report (location, behavior, why, suggested change)
+  Process: one Opt-ID per small PR — PR body holds the report
+  Docs:    english/O_OPTIMIZE.md
+
+  Later:   frontier optimize
+           frontier enhance optimize
+           frontier optimize pr-body Opt-001
+
+  Stick with:  frontier learn | guard | plan | apply | push
+╚══════════════════════════════════════════════╝`)
+}
+
+func runSCM(cwd string, args []string) {
+	sub := "status"
+	if len(args) > 0 {
+		sub = strings.ToLower(args[0])
+	}
+	switch sub {
+	case "status", "init", "connect", "":
+		printSCMStub(cwd, sub)
+	default:
+		fmt.Fprintf(os.Stderr, "unknown scm subcommand %q (try: status|init|connect)\n", args[0])
+		os.Exit(2)
+	}
+}
+
+func printSCMStub(cwd, sub string) {
+	fmt.Println(`╔══════════════════════════════════════════════╗
+║  SCM — onboarding (separate from Learn)      ║
+╚══════════════════════════════════════════════╝
+  Purpose: how code is managed (git / GitHub / none)
+  When:    BEFORE learn if the customer has no VCS
+  Docs:    english/SCM.md
+
+  Planned:
+    frontier scm status   — detect git + remotes + host
+    frontier scm init     — local git init (human confirm)
+    frontier scm connect  — guide remote setup (human auth)
+
+  Never create remotes silently.`)
+	fmt.Printf("\n  cwd: %s\n  requested: scm %s  (stub — detect coming next)\n", cwd, sub)
+	// Light detect for dogfood visibility (read-only).
+	repo := gitx.Repo{Dir: cwd}
+	if b, err := repo.Branch(); err == nil && b != "" {
+		fmt.Printf("  hint: git branch = %s (work tree looks present)\n", b)
+	} else {
+		fmt.Println("  hint: no git branch detected here — scm init may be needed")
+	}
+	fmt.Println("╚══════════════════════════════════════════════╝")
 }
 
 func runLearn(cwd string, args []string) {
@@ -512,6 +581,7 @@ func runEnhance(cwd string, args []string) {
 	if len(args) == 0 {
 		fmt.Println(`enhance commands:
   frontier enhance guard     programmatic Guard pack + lean host brief
+  frontier enhance optimize  CS speed residual (PLANNED stub)
   frontier enhance status    last enhance.* ledger seals
   frontier enhance seal PATH ingest host-model result JSON (advise)`)
 		return
@@ -519,6 +589,9 @@ func runEnhance(cwd string, args []string) {
 	switch strings.ToLower(args[0]) {
 	case "guard", "g", "v":
 		runEnhanceGuard(cwd)
+	case "optimize", "o":
+		printOptimizeStub()
+		fmt.Println("(enhance optimize will fill Opt-* reports — not implemented yet)")
 	case "status":
 		runEnhanceStatus(cwd)
 	case "seal":
