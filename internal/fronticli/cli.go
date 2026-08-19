@@ -12,6 +12,7 @@ import (
 	"github.com/Wadek/frontier-ship/internal/gitx"
 	"github.com/Wadek/frontier-ship/internal/learn"
 	"github.com/Wadek/frontier-ship/internal/ledger"
+	"github.com/Wadek/frontier-ship/internal/optimize"
 	"github.com/Wadek/frontier-ship/internal/owasp"
 	"github.com/Wadek/frontier-ship/internal/policy"
 	"github.com/Wadek/frontier-ship/internal/vscan"
@@ -171,12 +172,13 @@ func handleMeta(args []string) {
   frontier learn        L   — Learn / Landscape (classify before change)
   frontier guard        G   — Guard / security exam (OWASP + secret surfaces)
   frontier slim         S   — Slim / vibe-bloat (PLANNED — not enforced)
-  frontier optimize     O   — Optimize / behavior-preserving speed (PLANNED)
+  frontier optimize     O   — Optimize report (behavior-preserving speed; advise)
 
   Onboarding (no letter):  frontier scm status|init|connect
 
   git frontier learn classify [path]
   git frontier guard list|checkov
+  git frontier optimize report|status|pr-body Opt-001
   git frontier enhance guard|optimize
   git frontier enhance status|seal
   git frontier mock-import
@@ -227,7 +229,7 @@ Same as standalone:  frontier scm | learn | guard | slim | optimize | plan | app
 	case "slim", "S", "s":
 		printSlimStub()
 	case "optimize", "O", "o":
-		printOptimizeStub()
+		runOptimize(cwd, args[1:])
 	case "plan":
 		runPlan(cwd, true)
 	case "apply", "gate":
@@ -265,7 +267,7 @@ Policy families (word = primary, letter = alias):
   Learn     (L)  — ingest + classify before change
   Guard     (G)  — security + secret surfaces; enforced at changeset
   Slim      (S)  — vibe-code bloat; PLANNED
-  Optimize  (O)  — behavior-preserving speed; PLANNED (report in small PRs)
+  Optimize  (O)  — behavior-preserving speed; report + small PRs
 
 Enhance:
   frontier enhance guard | optimize
@@ -296,20 +298,133 @@ func printSlimStub() {
 
 func printOptimizeStub() {
 	fmt.Println(`╔══════════════════════════════════════════════╗
-║  Optimize (O) — PLANNED, not enforced yet    ║
+║  Optimize (O) — behavior-preserving speed    ║
 ╚══════════════════════════════════════════════╝
-  Purpose: behavior-preserving speed (CS-grounded, simplest correct change)
+  Purpose: simplest correct change; intended behavior unchanged
   After:   learn → guard → slim
-  Output:  developer report (location, behavior, why, suggested change)
-  Process: one Opt-ID per small PR — PR body holds the report
+  Output:  .frontier/optimize/O-*  (PR body = Opt section)
   Docs:    english/O_OPTIMIZE.md
 
-  Later:   frontier optimize
-           frontier enhance optimize
-           frontier optimize pr-body Opt-001
+  frontier optimize              # run report (alias: report)
+  frontier optimize report
+  frontier optimize status
+  frontier optimize pr-body Opt-001
+  frontier enhance optimize      # residual CS fill (planned depth)
 
-  Stick with:  frontier learn | guard | plan | apply | push
+  One Opt-ID per small PR. Advise-only — does not block gate.
 ╚══════════════════════════════════════════════╝`)
+}
+
+func runOptimize(cwd string, args []string) {
+	if len(args) == 0 {
+		runOptimizeReport(cwd)
+		return
+	}
+	switch strings.ToLower(args[0]) {
+	case "report", "run":
+		runOptimizeReport(cwd)
+	case "status":
+		runOptimizeStatus(cwd)
+	case "pr-body", "prbody":
+		if len(args) < 2 {
+			fail(fmt.Errorf("usage: frontier optimize pr-body Opt-001"))
+			return
+		}
+		runOptimizePRBody(cwd, args[1])
+	case "help", "-h", "--help":
+		printOptimizeStub()
+	default:
+		fmt.Fprintf(os.Stderr, "unknown optimize subcommand %q (try: report|status|pr-body)\n", args[0])
+		os.Exit(2)
+	}
+}
+
+func runOptimizeReport(cwd string) {
+	fmt.Println(`╔══════════════════════════════════════════════╗
+║  OPTIMIZE (O) — report (advise, no mutate)   ║
+╚══════════════════════════════════════════════╝`)
+	axiom("F0", "optimize.start", "programmatic hotspots; behavior must stay equivalent")
+	r, err := optimize.BuildReport(cwd)
+	if err != nil {
+		fail(err)
+		return
+	}
+	art, err := optimize.WriteArtifacts(r)
+	if err != nil {
+		fail(err)
+		return
+	}
+	fmt.Printf("project:   %s\n", r.Name)
+	fmt.Printf("findings:  %d (advise-only)\n", len(r.Findings))
+	for _, f := range r.Findings {
+		fmt.Printf("  - %s  %s  %s\n", f.ID, f.Path, f.Title)
+	}
+	fmt.Printf("\nbrief:  %s\njson:   %s\n", art.Markdown, art.JSON)
+	fmt.Println("Next: frontier optimize pr-body Opt-001  → paste into a small PR")
+
+	led, err := ledger.Open(findLedger(cwd))
+	if err != nil {
+		fail(err)
+		return
+	}
+	ids := optimize.ListFindingIDs(r)
+	_, _ = led.Append("frontier-git", "optimize.reported", map[string]any{
+		"root":     r.Root,
+		"name":     r.Name,
+		"findings": len(r.Findings),
+		"ids":      ids,
+		"brief":    art.Markdown,
+		"json":     art.JSON,
+		"blocks_gate": false,
+	})
+	axiom("F0", "ledger.append", "optimize.reported sealed")
+	axiom("F4", "optimize.done", fmt.Sprintf("%d Opt-*(s)", len(r.Findings)))
+}
+
+func runOptimizeStatus(cwd string) {
+	r, err := optimize.LoadLatest(cwd)
+	if err != nil {
+		fmt.Println(err.Error())
+		led, e2 := ledger.Open(findLedger(cwd))
+		if e2 != nil {
+			return
+		}
+		rows, _ := led.Tail(40)
+		n := 0
+		for _, row := range rows {
+			if strings.HasPrefix(row.Action, "optimize.") {
+				fmt.Printf("%d %s %s %v\n", row.Seq, row.TS, row.Action, row.Payload)
+				n++
+			}
+		}
+		if n == 0 {
+			fmt.Println("run: frontier optimize report")
+		}
+		return
+	}
+	fmt.Printf("latest optimize: %s  findings=%d\n", r.Stamp, len(r.Findings))
+	for _, f := range r.Findings {
+		fmt.Printf("  %s  [%s] %s:%d  %s\n", f.ID, f.Disposition, f.Path, f.StartLine, f.Title)
+	}
+}
+
+func runOptimizePRBody(cwd, id string) {
+	r, err := optimize.LoadLatest(cwd)
+	if err != nil {
+		fail(err)
+		return
+	}
+	f, err := optimize.FindingByID(r, id)
+	if err != nil {
+		fail(err)
+		return
+	}
+	fmt.Println("<!-- frontier optimize — paste as PR body; one Opt-ID per PR -->")
+	fmt.Printf("## Optimize: %s\n\n", f.ID)
+	fmt.Println(optimize.FormatFinding(*f))
+	fmt.Println("---")
+	fmt.Println("Branch suggestion: `frontier/opt-" + strings.ToLower(strings.ReplaceAll(f.ID, "Opt-", "")) + "-…`")
+	fmt.Println("Remember: behavior-preserving only; run tests covering this function.")
 }
 
 func runSCM(cwd string, args []string) {
@@ -590,8 +705,8 @@ func runEnhance(cwd string, args []string) {
 	case "guard", "g", "v":
 		runEnhanceGuard(cwd)
 	case "optimize", "o":
-		printOptimizeStub()
-		fmt.Println("(enhance optimize will fill Opt-* reports — not implemented yet)")
+		fmt.Println("enhance optimize: programmatic report first; host fills residual CS detail in PR.")
+		runOptimizeReport(cwd)
 	case "status":
 		runEnhanceStatus(cwd)
 	case "seal":

@@ -24,7 +24,7 @@ Local first. Simple is better. Fail closed — like Terraform: **nothing goes if
 | **L** | **Learn** | Ingest + classify a project before change (first phase of Slim). |
 | **G** | **Guard** | Security (OWASP / secret surfaces / adapters). Examined at **changeset**. High/Critical → **block**. |
 | **S** | **Slim** | **Planned:** reduce vibe-code bloat. Advise first; optional block later. |
-| **O** | **Optimize** | **Planned:** behavior-preserving speed; report in small PRs. |
+| **O** | **Optimize** | Behavior-preserving speed; report in `.frontier/optimize` + small PRs (`frontier optimize`). |
 
 **Onboarding (not a letter family):** `frontier scm` — detect/init/connect version control when the customer has none ([english/SCM.md](english/SCM.md)).
 
@@ -88,7 +88,7 @@ frontier guard             # G — security exam + secret surfaces
 frontier guard list        # scanners: owasp-v0, checkov, …
 frontier enhance guard     # programmatic pack + lean brief for host model
 frontier slim              # S — planned
-frontier optimize          # O — planned (behavior-preserving speed)
+frontier optimize          # O — report (hotspots → Opt-*; pr-body for PRs)
 frontier mock-import       # mock importer
 git frontier demo|ledger|status|explain
 ```
