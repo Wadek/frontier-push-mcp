@@ -57,7 +57,20 @@ Each finding is one review unit (**one small PR** preferred):
 
 Never one mega Optimize PR. One Opt-ID (or tight cluster) per branch: `frontier/opt-<id>-…`.
 
+## Commands (now)
+
+| Command | What |
+|---------|------|
+| `frontier optimize` / `optimize report` | Build report; write `.frontier/optimize/O-*`; seal `optimize.reported` |
+| `frontier optimize status` | Show latest Opt-* list |
+| `frontier optimize pr-body Opt-001` | Print PR-body markdown for one finding |
+| `frontier enhance optimize` | Same programmatic report (host adds residual CS in the PR) |
+
+## Programmatic v0
+
+Large-function **hotspots** (Go/Python/JS/TS, ~80+ lines) → Opt-* **advise** candidates.  
+Not an auto-rewrite. Human or enhance fills the concrete transform in a **small PR**.
+
 ## Status
 
-**Phase A:** doctrine + CLI stub.  
-Detectors and report writers come later. Enhance path: `frontier enhance optimize` (planned).
+Report writer + hotspot scanner shipped. Deeper CS detectors and enhance residual fill come next.
