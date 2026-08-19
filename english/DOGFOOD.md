@@ -11,7 +11,8 @@ That is how we test the tool: if we cannot ship our own changes through `plan â†
 3. Always:
 
 ```text
-git frontier V          # optional visibility
+git frontier learn      # optional: classify before change
+git frontier guard      # optional visibility (security)
 git frontier plan       # must exit 0
 git frontier apply      # must exit 0
 git push -u origin HEAD

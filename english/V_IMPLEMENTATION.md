@@ -1,61 +1,56 @@
-# How V is implemented (security only)
+# How Guard (G) is implemented (security)
+
+CLI: **`frontier guard`** (letter alias **`G`**). Formal definition-set in axioms may still be written `V` (vulnerability set); the command is Guard.
 
 ## Shape
 
 ```
   english/SECURITY_POLICY_OWASP.md     what humans mean
            │
-  haskell/src/Frontier/OWASP.hs        proof shelf (rule ids in V)
+  haskell/src/Frontier/OWASP.hs        proof shelf (rule ids)
            │
   internal/owasp + internal/vscan      programmatic checks (no tokens)
            │
-  git frontier V | gate | push         control_point = changeset
+  frontier guard | gate | push         control_point = changeset
            │
-  frontier enhance V                   lean brief → host model (residual only)
+  frontier enhance guard               lean brief → host model (residual only)
            │
   ledger                               F0 evidence
 ```
 
 ## Programmatic first (token thrift)
 
-Do as much as possible **without** an LLM:
-
 | Layer | Tool | Tokens? |
 |-------|------|---------|
 | Built-in OWASP v0 | `internal/owasp` regex ScanTree | no |
+| Secret surfaces | path names only (`.env`, `.pem`, credentials…) | no |
 | Adapters | Checkov (if installed); gitleaks/semgrep planned | no |
 | Scope + inventory | git diff vs main, lang/manifest counts | no |
 | Enhance brief | `.frontier/enhance/V-*.md` capped (~12 KiB) | handoff only |
 
-`enhance V` tells the host model: **do not re-litigate programmatic hits** — only residual SAST/DAST/pentest gaps.
+Secret **surfaces** are Guard (security), not Learn.
 
-Gate/plan still **hard-block only** on built-in OWASP High/Critical. Adapter + enhance findings default to **advise** until promoted into English→Haskell→Go V.
+Gate/plan still **hard-block only** on built-in OWASP High/Critical. Adapter + enhance findings default to **advise** until promoted into English→Haskell→Go definitions.
 
-## Commands you can see
+## Commands
 
 | Command | What it does |
 |---------|----------------|
-| `git frontier mock-import` | **Mock** of V-importer: skill-table + OWASP rows with control_point + disposition |
-| `git frontier V` / `exam` | Built-in OWASP exam; seal `exam.owasp` |
-| `git frontier V list` | Built-in + adapters (available?) |
-| `git frontier V checkov` | Run Checkov adapter if on PATH |
-| `git frontier enhance V` | Programmatic pack + lean brief; seal `enhance.requested` |
-| `git frontier enhance seal PATH` | Host result JSON → `enhance.completed` (advise) |
-| `git frontier gate` | Exam + push rules (branch/dirty/main) + seal pass/fail |
-| `git frontier demo` | Ladder + gate preview |
+| `frontier guard` / `G` / `exam` | OWASP exam + secret surfaces; seal `exam.owasp` |
+| `frontier guard list` | Built-in + adapters |
+| `frontier guard checkov` | Checkov adapter if on PATH |
+| `frontier enhance guard` | Programmatic pack + lean brief |
+| `frontier enhance seal PATH` | Host result → `enhance.completed` (advise) |
+| `frontier gate` | Exam + push rules + seal pass/fail |
 
-## Dispositions (V only)
+## Dispositions
 
 | Disposition | When |
 |-------------|------|
-| **block** | High/Critical under built-in V (blocks gate/push) |
-| **advise** | Non-blocking findings; enhance results; most adapter hits |
-| **record** | Clean under V, or catalog-only definitions |
+| **block** | High/Critical under built-in OWASP (blocks gate/push) |
+| **advise** | Non-blocking findings; secret surfaces; enhance results |
+| **record** | Clean under current Guard |
 
-## Not built yet (importer real)
+## Stick with Guard + Learn
 
-Harvest MITRE/CWE/CAPEC into the same columns as `mock-import`, emit Haskell, wire Go only for **changeset**-capable rows.
-
-## Stick with V
-
-Slim/optimize policy is **not** in scope right now.
+Slim (`frontier slim` / `S`) is planned. Learn (`frontier learn` / `L`) first.

@@ -2,13 +2,13 @@
 //
 // Examples:
 //
-//	frontier V
+//	frontier guard
 //	frontier plan
 //	frontier apply
 //	frontier S
 //
 // Not `go frontier` — that is not how the Go toolchain works.
-// For development you may run: go run ./cmd/frontier V
+// For development you may run: go run ./cmd/frontier guard
 package main
 
 import (

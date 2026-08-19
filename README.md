@@ -19,12 +19,13 @@ Local first. Simple is better. Fail closed — like Terraform: **nothing goes if
 
 ## Policy families
 
-| | Name | Meaning |
-|--|------|---------|
-| **V** | **Vulnerabilities** | Security definitions (OWASP / MITRE via importer). Examined at **changeset**. High/Critical → **block**. |
-| **S** | **Slim** | **Planned:** reduce vibe-code bloat (budgets, dead code). Advise first; optional block later. **Not enforced yet.** |
+| Letter | Word | Meaning |
+|--------|------|---------|
+| **L** | **Learn** | Ingest + classify a project before change (first phase of Slim). |
+| **G** | **Guard** | Security (OWASP / secret surfaces / adapters). Examined at **changeset**. High/Critical → **block**. |
+| **S** | **Slim** | **Planned:** reduce vibe-code bloat. Advise first; optional block later. **Not enforced yet.** |
 
-Today: **V only.** S is on the roadmap.
+Today: **Learn + Guard.** Slim is on the roadmap. Prefer full words in scripts (`frontier guard`); letters are aliases (`G`).
 
 ---
 
@@ -47,10 +48,10 @@ git frontier explain
 | How | Example |
 |-----|---------|
 | **With git** (daily) | `git frontier plan` |
-| **Standalone** | `frontier plan` or `frontier V` |
+| **Standalone** | `frontier plan` or `frontier guard` |
 
 Same engine. Not `go frontier` — `go` is the Go *language toolchain* (`go build`, `go test`).  
-During development you *may* run `go run ./cmd/frontier V` (that means “run this package,” not a Go subcommand).
+During development you *may* run `go run ./cmd/frontier guard` (that means “run this package,” not a Go subcommand).
 
 ---
 
@@ -77,12 +78,12 @@ git push
 Also:
 
 ```text
-frontier V                 # vulnerabilities exam (built-in OWASP)
-frontier V list            # scanners: owasp-v0, checkov, …
-frontier V checkov         # Checkov adapter if installed (no tokens)
-frontier enhance V         # programmatic pack + lean brief for host model
-frontier S                 # slim stub — planned
-frontier mock-import       # mock V-importer
+frontier learn             # L — classify this project
+frontier guard             # G — security exam + secret surfaces
+frontier guard list        # scanners: owasp-v0, checkov, …
+frontier enhance guard     # programmatic pack + lean brief for host model
+frontier slim              # S — planned
+frontier mock-import       # mock importer
 git frontier demo|ledger|status|explain
 ```
 ---

@@ -86,7 +86,8 @@ git add -A
 git commit -m "frontier: first sealed change"
 
 git frontier demo
-git frontier V             # vulnerabilities exam
+git frontier learn         # classify project (L)
+git frontier guard         # security exam (G)
 git frontier plan          # must succeed — fail closed
 git frontier apply         # only works after plan.passed
 git push -u origin HEAD    # only works after apply/gate.passed
