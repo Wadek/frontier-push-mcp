@@ -12,12 +12,12 @@ import (
 )
 
 const (
-	MaxSecretSurfaces = 40
-	MaxTopEntries     = 40
-	MaxBriefBytes     = 12 * 1024
+	MaxTopEntries = 40
+	MaxBriefBytes = 12 * 1024
 )
 
 // Landscape is a sealed, programmatic understanding of one project root.
+// Security concerns (secret surfaces, OWASP) belong in Guard (G), not Learn.
 type Landscape struct {
 	Root            string         `json:"root"`
 	Name            string         `json:"name"`
@@ -29,7 +29,6 @@ type Landscape struct {
 	ComposeServices []string       `json:"compose_services,omitempty"`
 	LangCounts      map[string]int `json:"lang_counts"`
 	Manifests       []string       `json:"manifests"`
-	SecretSurfaces  []string       `json:"secret_surfaces"` // names/paths only — no values
 	TopEntries      []string       `json:"top_entries"`
 	FileCountApprox int            `json:"file_count_approx"`
 	Notes           []string       `json:"notes,omitempty"`
@@ -84,24 +83,16 @@ func Classify(root string) (*Landscape, error) {
 			ls.HasCompose = true
 			ls.ComposeServices = parseComposeServices(filepath.Join(root, name))
 		}
-		if isManifestName(low) || strings.HasPrefix(low, ".env") || strings.HasSuffix(low, ".tf") {
+		if isManifestName(low) || strings.HasSuffix(low, ".tf") {
 			ls.Manifests = append(ls.Manifests, name)
-		}
-		if looksSecretSurface(low) {
-			ls.SecretSurfaces = append(ls.SecretSurfaces, name)
 		}
 	}
 	sort.Strings(ls.TopEntries)
 	sort.Strings(ls.Manifests)
 
-	langs, moreManifests, moreSecrets, files := walkLight(root)
+	langs, moreManifests, files := walkLight(root)
 	ls.LangCounts = langs
 	ls.Manifests = uniqueSorted(append(ls.Manifests, moreManifests...))
-	ls.SecretSurfaces = uniqueSorted(append(ls.SecretSurfaces, moreSecrets...))
-	if len(ls.SecretSurfaces) > MaxSecretSurfaces {
-		ls.SecretSurfaces = ls.SecretSurfaces[:MaxSecretSurfaces]
-		ls.Notes = append(ls.Notes, "secret_surfaces truncated")
-	}
 	ls.FileCountApprox = files
 
 	ls.Kind, ls.Confidence, ls.Reasons = inferKind(ls)
@@ -170,20 +161,14 @@ func renderMarkdown(ls *Landscape) string {
 			fmt.Fprintf(&b, "  - %s\n", m)
 		}
 	}
-	if len(ls.SecretSurfaces) > 0 {
-		b.WriteString("- secret surfaces (names only):\n")
-		for _, s := range ls.SecretSurfaces {
-			fmt.Fprintf(&b, "  - %s\n", s)
-		}
-	}
 	b.WriteString("\n## Top entries\n\n")
 	for _, e := range ls.TopEntries {
 		fmt.Fprintf(&b, "- %s\n", e)
 	}
 	b.WriteString("\n## Next\n\n")
-	b.WriteString("- `frontier V` for security exam on this tree\n")
-	b.WriteString("- `frontier enhance V` for residual host review\n")
-	b.WriteString("- `frontier S` (planned) using coverage after a real run profile\n")
+	b.WriteString("- `frontier guard` (G) for security exam on this tree\n")
+	b.WriteString("- `frontier enhance guard` for residual host review\n")
+	b.WriteString("- `frontier slim` (S) planned — coverage after a real run profile\n")
 	return b.String()
 }
 
@@ -217,7 +202,7 @@ func inferKind(ls *Landscape) (kind, conf string, reasons []string) {
 	}
 }
 
-func walkLight(root string) (langs map[string]int, manifests, secrets []string, files int) {
+func walkLight(root string) (langs map[string]int, manifests []string, files int) {
 	langs = map[string]int{}
 	skipDir := map[string]bool{
 		".git": true, "node_modules": true, "vendor": true, ".frontier": true,
@@ -255,12 +240,9 @@ func walkLight(root string) (langs map[string]int, manifests, secrets []string, 
 		if isManifestName(base) {
 			manifests = append(manifests, rel)
 		}
-		if looksSecretSurface(base) || looksSecretSurface(rel) {
-			secrets = append(secrets, rel)
-		}
 		return nil
 	})
-	return langs, manifests, secrets, files
+	return langs, manifests, files
 }
 
 func parseComposeServices(path string) []string {
@@ -308,24 +290,6 @@ func isManifestName(base string) bool {
 	default:
 		return strings.HasPrefix(base, "dockerfile.")
 	}
-}
-
-func looksSecretSurface(s string) bool {
-	low := strings.ToLower(s)
-	base := filepath.Base(low)
-	if base == ".env" || strings.HasPrefix(base, ".env.") {
-		return true
-	}
-	if strings.HasSuffix(base, ".pem") || strings.HasSuffix(base, ".key") {
-		return true
-	}
-	if base == "credentials.json" || base == "secrets.json" || base == "auth.json" {
-		return true
-	}
-	if strings.Contains(low, "id_rsa") || strings.Contains(low, "private") && strings.HasSuffix(base, ".key") {
-		return true
-	}
-	return false
 }
 
 func containsEntry(entries []string, want string) bool {

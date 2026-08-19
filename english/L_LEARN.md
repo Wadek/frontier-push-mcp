@@ -1,24 +1,30 @@
-# L — Learn / Landscape
+# Learn (L) — Landscape
 
-**L** is the third policy family alongside **V** (security) and **S** (slim).
+**Learn** is a policy family alongside **Guard (G)** and **Slim (S)**.
+
+| Word | Letter | Job |
+|------|--------|-----|
+| `frontier learn` | L | Ingest + classify before change |
+| `frontier guard` | G | Security (OWASP, secret surfaces, adapters) |
+| `frontier slim` | S | Vibe-bloat reduction (planned) |
 
 ## Purpose
 
-Ingest and classify a **single project** before changing it. L is the first phase of S and of any habitat/architecture review.
+Ingest and classify a **single project** before changing it. Learn is the first phase of Slim and of any habitat/architecture review.
 
 ```
-  L classify  →  map (kind, compose, langs, secret *surfaces*)
-  V           →  security exam on known surface
-  S           →  slim using L + (later) coverage   [planned]
+  learn classify  →  map (kind, compose, langs, topology)
+  guard           →  security exam + secret path names
+  slim            →  bloat using Learn + (later) coverage   [planned]
 ```
 
 ## Commands
 
 | Command | What |
 |---------|------|
-| `frontier L` / `frontier L classify` | Classify cwd; write `.frontier/learn/L-*`; seal `learn.classified` |
-| `frontier L classify PATH` | Classify that project root |
-| `frontier L status` | Recent `learn.*` ledger rows |
+| `frontier learn` / `frontier learn classify` | Classify cwd; write `.frontier/learn/L-*`; seal `learn.classified` |
+| `frontier learn classify PATH` | Classify that project root |
+| `frontier learn status` / `frontier L status` | Recent `learn.*` ledger rows |
 
 ## Kinds (v0)
 
@@ -26,6 +32,6 @@ Ingest and classify a **single project** before changing it. L is the first phas
 
 ## Rules
 
-- Read-only: L does not move/delete files.
-- Secret **surfaces** only (path names) — never dump secret values into briefs.
+- Read-only: Learn does not move/delete files.
+- **Security belongs in Guard** — secret surfaces (`.env`, keys, …) are not part of Learn.
 - Run **per project** (e.g. each child of `D:\wakalabs`), not on the umbrella alone.

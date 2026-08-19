@@ -162,30 +162,36 @@ func handleMeta(args []string) {
 	if len(args) == 0 {
 		fmt.Println(`git frontier commands (Terraform-like: plan → apply → push):
 
-  git frontier plan         preview V (and note S); FAIL stops the world
+  git frontier plan         preview Guard (note Slim); FAIL stops the world
   git frontier apply        seal push authorization only if plan passed
   git frontier gate         alias of apply
 
-  git frontier L            Learn / Landscape (classify this project)
-  git frontier L classify [path]
-  git frontier V            run Vulnerabilities exam (OWASP built-in)
-  git frontier V list       list programmatic scanners (owasp, checkov, …)
-  git frontier V checkov    run Checkov adapter if installed (no tokens)
-  git frontier S            Slim / vibe-bloat (PLANNED — not enforced)
-  git frontier exam         alias of V
-  git frontier enhance V    programmatic pack + lean brief for host model
+  Words (preferred)     Letter aliases
+  -------------------   --------------
+  frontier learn        L   — Learn / Landscape (classify before change)
+  frontier guard        G   — Guard / security exam (OWASP + secret surfaces)
+  frontier slim         S   — Slim / vibe-bloat (PLANNED — not enforced)
+
+  git frontier learn classify [path]
+  git frontier guard list|checkov
+  git frontier enhance guard
   git frontier enhance status|seal
-  git frontier mock-import  mock V-importer list
+  git frontier mock-import
 
   git frontier status|ledger|demo|explain
 
+Letter notes (avoid shell pain):
+  Prefer full words in scripts. Single letters are aliases only.
+  g is sometimes aliased to git in zsh — use "frontier guard" or "frontier G".
+  Avoid overlapping common tools: ls, cd, ps, rm, git, go, gh, …
+
 Env: FRONTIER_SOFT=1  FRONTIER_VERBOSE=1  FRONTIER_GIT_BIN  FRONTIER_LEDGER
-     FRONTIER_V_AUTO=1  also run available adapters during enhance/V pack
+     FRONTIER_V_AUTO=1  also run available adapters during enhance/guard pack
 
 Nothing remote goes if plan/apply fails (like terraform).
 
-Same commands as standalone:  frontier L | V | enhance V | plan | apply | S
-(Not \"go frontier\" — go is the Go toolchain; use frontier or go run ./cmd/frontier)`)
+Same as standalone:  frontier learn | guard | slim | plan | apply
+(Not \"go frontier\" — go is the Go toolchain)`)
 		return
 	}
 	cwd, _ := os.Getwd()
@@ -196,17 +202,24 @@ Same commands as standalone:  frontier L | V | enhance V | plan | apply | S
 		p, _ := repo.StatusPorcelain()
 		fmt.Printf("cwd: %s\nbranch: %s\ndirty: %v\nledger: %s\nreal_git: %s\nsoft: %v\n",
 			cwd, b, policy.DirtyPorcelain(p), findLedger(cwd), findRealGit(), os.Getenv("FRONTIER_SOFT") == "1")
-	case "L", "l", "learn":
+	case "learn", "L", "l":
 		runLearn(cwd, args[1:])
-	case "V", "v", "exam":
+	case "guard", "G", "g", "exam":
 		if len(args) > 1 {
-			runVSub(cwd, args[1:])
+			runGuardSub(cwd, args[1:])
+			return
+		}
+		runExam(cwd, true)
+	case "V", "v": // temporary aliases → guard
+		fmt.Fprintln(os.Stderr, "note: frontier V is now frontier guard (G)")
+		if len(args) > 1 {
+			runGuardSub(cwd, args[1:])
 			return
 		}
 		runExam(cwd, true)
 	case "enhance":
 		runEnhance(cwd, args[1:])
-	case "S", "s":
+	case "slim", "S", "s":
 		printSlimStub()
 	case "plan":
 		runPlan(cwd, true)
@@ -238,13 +251,13 @@ Terraform-like flow:
   git frontier apply   # authorize — only if plan passed
   git push             # only if apply/gate sealed
 
-Policy families:
-  L  Learn / Landscape — ingest + classify before change (first phase of S)
-  V  Vulnerabilities — security definitions (OWASP…); enforced at changeset
-  S  Slim — vibe-code bloat reduction; PLANNED (not enforced yet)
+Policy families (word = primary, letter = alias):
+  Learn  (L)  — ingest + classify before change (first phase of Slim)
+  Guard  (G)  — security definitions (OWASP…) + secret surfaces; enforced at changeset
+  Slim   (S)  — vibe-code bloat reduction; PLANNED (not enforced yet)
 
 Enhance:
-  git frontier enhance V   # programmatic first, lean brief for host model (Grok/Fable/…)
+  git frontier enhance guard   # programmatic first, lean brief for host model
 
 Control points: changeset | review | runtime | engagement
 Languages: English · Haskell · Go
@@ -257,15 +270,15 @@ State: ledger (like terraform state) — evidence of plan/apply`)
 
 func printSlimStub() {
 	fmt.Println(`╔══════════════════════════════════════════════╗
-║  S (Slim) — PLANNED, not enforced yet        ║
+║  Slim (S) — PLANNED, not enforced yet        ║
 ╚══════════════════════════════════════════════╝
   Purpose: manage vibe-code bloat (least code that still works)
   Control: changeset (advise→block later) + review (intent)
-  Today:   use V only for security baseline
-  Later:   git frontier S   will report budgets / dead code
-  First:   git frontier L classify   (learn before slim)
+  Today:   use frontier guard (G) for security baseline
+  Later:   frontier slim   will report budgets / dead code
+  First:   frontier learn classify   (learn before slim)
 
-  Stick with:  git frontier L | V | plan | apply | push
+  Stick with:  frontier learn | guard | plan | apply | push
 ╚══════════════════════════════════════════════╝`)
 }
 
@@ -366,10 +379,10 @@ func verbose() bool {
 
 func runExam(cwd string, seal bool) ([]owasp.Finding, error) {
 	fmt.Println(`╔══════════════════════════════════════════════╗
-║     FRONTIER EXAM — V at control=changeset   ║
+║  FRONTIER GUARD (G) — control=changeset      ║
 ╚══════════════════════════════════════════════╝`)
 	axiom("F0", "exam.ledger", "evidence path open")
-	axiom("F4", "exam.start", "policy V = OWASP Top 10 v0 (English→Haskell→Go)")
+	axiom("F4", "exam.start", "Guard policy = OWASP Top 10 v0 (English→Haskell→Go)")
 
 	findings, err := owasp.ScanTree(cwd)
 	if err != nil {
@@ -379,23 +392,35 @@ func runExam(cwd string, seal bool) ([]owasp.Finding, error) {
 	fmt.Println(owasp.FormatReport(findings))
 	fmt.Println()
 
+	surfaces, _ := vscan.ListSecretSurfaces(cwd)
+	if len(surfaces) == 0 {
+		fmt.Println("secret surfaces: none named (.env/.pem/credentials…)")
+	} else {
+		fmt.Printf("secret surfaces: %d (names only — review under Guard)\n", len(surfaces))
+		for _, s := range surfaces {
+			fmt.Printf("  - %s\n", s)
+		}
+		fmt.Println()
+	}
+
 	block := owasp.BlocksGate(findings)
 	disposition := "record"
 	switch {
 	case block:
 		disposition = "block"
-		axiom("F4", "disposition", "block — High/Critical under V")
-	case len(findings) > 0:
+		axiom("F4", "disposition", "block — High/Critical under Guard")
+	case len(findings) > 0 || len(surfaces) > 0:
 		disposition = "advise"
-		axiom("F4", "disposition", "advise — findings present, none High/Critical")
+		axiom("F4", "disposition", "advise — findings or secret surfaces present")
 	default:
-		axiom("F4", "disposition", "record — Clean under current V")
+		axiom("F4", "disposition", "record — Clean under current Guard")
 	}
 
 	fmt.Printf("control_point: changeset\n")
 	fmt.Printf("disposition:   %s\n", disposition)
-	fmt.Printf("V_policy:      OWASP-Top10-2021-v0\n")
+	fmt.Printf("guard_policy:  OWASP-Top10-2021-v0\n")
 	fmt.Printf("findings:      %d\n", len(findings))
+	fmt.Printf("secret_paths:  %d\n", len(surfaces))
 	fmt.Println("╚══════════════════════════════════════════════╝")
 
 	if seal {
@@ -404,11 +429,12 @@ func runExam(cwd string, seal bool) ([]owasp.Finding, error) {
 			return findings, err
 		}
 		_, _ = led.Append("frontier-git", "exam.owasp", map[string]any{
-			"policy":       "OWASP-Top10-2021-v0",
-			"control":      "changeset",
-			"disposition":  disposition,
-			"findings":     len(findings),
-			"blocks_gate":  block,
+			"policy":          "OWASP-Top10-2021-v0",
+			"control":         "changeset",
+			"disposition":     disposition,
+			"findings":        len(findings),
+			"secret_surfaces": len(surfaces),
+			"blocks_gate":     block,
 		})
 		axiom("F0", "ledger.append", "exam.owasp sealed")
 	}
@@ -416,7 +442,7 @@ func runExam(cwd string, seal bool) ([]owasp.Finding, error) {
 	return findings, nil
 }
 
-func runVSub(cwd string, args []string) {
+func runGuardSub(cwd string, args []string) {
 	if len(args) == 0 {
 		runExam(cwd, true)
 		return
@@ -425,7 +451,7 @@ func runVSub(cwd string, args []string) {
 	switch sub {
 	case "list":
 		fmt.Println(`╔══════════════════════════════════════════════╗
-║     FRONTIER V — programmatic scanners       ║
+║     FRONTIER GUARD — programmatic scanners   ║
 ╚══════════════════════════════════════════════╝
 name        builtin  available  notes
 ----        -------  ---------  -----`)
@@ -449,14 +475,15 @@ name        builtin  available  notes
 		}
 		fmt.Println(`
 Gate/plan still hard-block only on built-in owasp-v0 High/Critical.
-Adapters enrich V / enhance briefs without burning model tokens.`)
+Adapters enrich Guard / enhance briefs without burning model tokens.
+Secret surfaces (.env, keys, …) are listed by: frontier guard`)
 	default:
 		sc, ok := vscan.Lookup(sub)
 		if !ok {
-			fmt.Fprintf(os.Stderr, "unknown V scanner %q (try: frontier V list)\n", sub)
+			fmt.Fprintf(os.Stderr, "unknown Guard scanner %q (try: frontier guard list)\n", sub)
 			os.Exit(2)
 		}
-		fmt.Printf("╔══════════════════════════════════════════════╗\n║     FRONTIER V — adapter %-12s       ║\n╚══════════════════════════════════════════════╝\n", sc.Name())
+		fmt.Printf("╔══════════════════════════════════════════════╗\n║   FRONTIER GUARD — adapter %-12s     ║\n╚══════════════════════════════════════════════╝\n", sc.Name())
 		axiom("F4", "exam.adapter", sc.Name())
 		res, err := sc.Scan(cwd)
 		if err != nil {
@@ -484,14 +511,14 @@ Adapters enrich V / enhance briefs without burning model tokens.`)
 func runEnhance(cwd string, args []string) {
 	if len(args) == 0 {
 		fmt.Println(`enhance commands:
-  frontier enhance V         programmatic V pack + lean host brief
+  frontier enhance guard     programmatic Guard pack + lean host brief
   frontier enhance status    last enhance.* ledger seals
   frontier enhance seal PATH ingest host-model result JSON (advise)`)
 		return
 	}
 	switch strings.ToLower(args[0]) {
-	case "V", "v":
-		runEnhanceV(cwd)
+	case "guard", "g", "v":
+		runEnhanceGuard(cwd)
 	case "status":
 		runEnhanceStatus(cwd)
 	case "seal":
@@ -506,9 +533,9 @@ func runEnhance(cwd string, args []string) {
 	}
 }
 
-func runEnhanceV(cwd string) {
+func runEnhanceGuard(cwd string) {
 	fmt.Println(`╔══════════════════════════════════════════════╗
-║  ENHANCE V — programmatic first, then host   ║
+║  ENHANCE GUARD — programmatic first, host    ║
 ╚══════════════════════════════════════════════╝`)
 	axiom("F0", "enhance.start", "build pack without tokens; hand residual to host model")
 	opts := vscan.Options{}
