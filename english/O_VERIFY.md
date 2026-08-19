@@ -15,9 +15,20 @@ This is the standard process to bake into Frontier Ship. Each **code stack** add
    b. Browser smoke (critical user paths)
 3. Implement the Opt change (simplest behavior-preserving transform)
 4. Re-run the same tests — must stay green / same assertions
-5. PR body = Opt report section + "Verification" (commands + results)
+5. PR body = Opt report section + "Verification" (commands + **paste/verbose log**)
 6. Merge; close the issue
 ```
+
+### Visibility (required)
+
+Customers (and agents) must **see** the proof, not only hear “tests passed.”
+
+| Where | What |
+|-------|------|
+| **Local / agent terminal** | Always run with **verbose** output, e.g. `pytest -v --tb=short`. Paste the summary (and failures) into the chat/PR. |
+| **GitHub (when remote is GitHub)** | Add a **Actions** workflow that runs the same suite on every PR/push. The check must be visible on the PR. |
+
+Do **not** treat a silent `pytest -q` with exit 0 as sufficient communication. Quiet mode is fine for CI logs after the first green run, but humans reviewing Opt work should get a visible list of passed tests.
 
 ### Two proof layers
 
@@ -55,7 +66,7 @@ Until those exist: follow this doc manually and paste results into the PR.
 
 ```text
 pip install -r requirements-dev.txt
-pytest tests/test_api_equivalence.py -q
+pytest tests/test_api_equivalence.py -v --tb=short
 ```
 
 Covers: list/create/toggle/update/delete payloads; static `/` and `/main.js` bytes vs disk (or vs baseline).
@@ -64,22 +75,27 @@ Covers: list/create/toggle/update/delete payloads; static `/` and `/main.js` byt
 
 ```text
 playwright install chromium
-pytest tests/test_browser_smoke.py -q
+pytest tests/test_browser_smoke.py -v --tb=short
 ```
 
 Covers: open UI, add task, toggle, edit, delete, search still filters (token optional via env `TASKS_E2E_BASE`).
 
-Default base URL: `http://127.0.0.1:8088` if published, or gateway URL. For compose-on-`waka-net` only, run a side publish or `docker exec` + port-forward — playbook may set `TASKS_E2E_BASE=https://tasks.wakalabs.net?token=…` for real gateway tests (secret via env, never commit).
+Default: ephemeral server from `conftest.py`. Optional gateway: `TASKS_E2E_BASE=https://tasks.wakalabs.net?token=…` (secret via env, never commit).
+
+### GitHub Actions (customer has GitHub)
+
+Workflow: `.github/workflows/verify.yml` — runs `pytest -v` (API + Playwright) on PR/push to `main`.  
+That is the customer-visible proof on the PR checks panel.
 
 ### Local loop for one Opt
 
 ```text
-# baseline
-pytest tests/ -q
+# baseline (verbose — show in terminal)
+pytest -v --tb=short
 # implement Opt-00N
-pytest tests/ -q
+pytest -v --tb=short
 frontier guard && frontier plan && frontier apply
-# PR with Opt section + Verification
+# PR with Opt section + Verification + CI green
 ```
 
 ---
