@@ -71,6 +71,12 @@ Never one mega Optimize PR. One Opt-ID (or tight cluster) per branch: `frontier/
 Large-function **hotspots** (Go/Python/JS/TS, ~80+ lines) → Opt-* **advise** candidates.  
 Not an auto-rewrite. Human or enhance fills the concrete transform in a **small PR**.
 
+## Verification (required before merge)
+
+See **[O_VERIFY.md](O_VERIFY.md)** — equivalence (code) + browser (Playwright) proofs.  
+Standard process for every Opt-ID; stack playbooks for how to run tests.
+
 ## Status
 
-Report writer + hotspot scanner shipped. Deeper CS detectors and enhance residual fill come next.
+Report writer + hotspot scanner shipped. Verification doctrine in O_VERIFY.md.  
+Deeper CS detectors and `frontier optimize verify` automation come next.
