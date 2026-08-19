@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/Wadek/frontier-ship/internal/gitx"
+	"github.com/Wadek/frontier-ship/internal/learn"
 	"github.com/Wadek/frontier-ship/internal/ledger"
 	"github.com/Wadek/frontier-ship/internal/owasp"
 	"github.com/Wadek/frontier-ship/internal/policy"
@@ -165,6 +166,8 @@ func handleMeta(args []string) {
   git frontier apply        seal push authorization only if plan passed
   git frontier gate         alias of apply
 
+  git frontier L            Learn / Landscape (classify this project)
+  git frontier L classify [path]
   git frontier V            run Vulnerabilities exam (OWASP built-in)
   git frontier V list       list programmatic scanners (owasp, checkov, …)
   git frontier V checkov    run Checkov adapter if installed (no tokens)
@@ -181,7 +184,7 @@ Env: FRONTIER_SOFT=1  FRONTIER_VERBOSE=1  FRONTIER_GIT_BIN  FRONTIER_LEDGER
 
 Nothing remote goes if plan/apply fails (like terraform).
 
-Same commands as standalone:  frontier V | enhance V | plan | apply | S
+Same commands as standalone:  frontier L | V | enhance V | plan | apply | S
 (Not \"go frontier\" — go is the Go toolchain; use frontier or go run ./cmd/frontier)`)
 		return
 	}
@@ -193,6 +196,8 @@ Same commands as standalone:  frontier V | enhance V | plan | apply | S
 		p, _ := repo.StatusPorcelain()
 		fmt.Printf("cwd: %s\nbranch: %s\ndirty: %v\nledger: %s\nreal_git: %s\nsoft: %v\n",
 			cwd, b, policy.DirtyPorcelain(p), findLedger(cwd), findRealGit(), os.Getenv("FRONTIER_SOFT") == "1")
+	case "L", "l", "learn":
+		runLearn(cwd, args[1:])
 	case "V", "v", "exam":
 		if len(args) > 1 {
 			runVSub(cwd, args[1:])
@@ -234,6 +239,7 @@ Terraform-like flow:
   git push             # only if apply/gate sealed
 
 Policy families:
+  L  Learn / Landscape — ingest + classify before change (first phase of S)
   V  Vulnerabilities — security definitions (OWASP…); enforced at changeset
   S  Slim — vibe-code bloat reduction; PLANNED (not enforced yet)
 
@@ -257,9 +263,97 @@ func printSlimStub() {
   Control: changeset (advise→block later) + review (intent)
   Today:   use V only for security baseline
   Later:   git frontier S   will report budgets / dead code
+  First:   git frontier L classify   (learn before slim)
 
-  Stick with:  git frontier V | plan | apply | push
+  Stick with:  git frontier L | V | plan | apply | push
 ╚══════════════════════════════════════════════╝`)
+}
+
+func runLearn(cwd string, args []string) {
+	if len(args) == 0 {
+		runLearnClassify(cwd)
+		return
+	}
+	switch strings.ToLower(args[0]) {
+	case "classify":
+		root := cwd
+		if len(args) > 1 {
+			root = args[1]
+		}
+		runLearnClassify(root)
+	case "status":
+		runLearnStatus(cwd)
+	default:
+		fmt.Fprintf(os.Stderr, "unknown L subcommand %q (try: frontier L classify [path])\n", args[0])
+		os.Exit(2)
+	}
+}
+
+func runLearnClassify(root string) {
+	fmt.Println(`╔══════════════════════════════════════════════╗
+║  L CLASSIFY — learn before change (no mutate)║
+╚══════════════════════════════════════════════╝`)
+	axiom("F0", "learn.start", "programmatic landscape; no remote mutate")
+	ls, err := learn.Classify(root)
+	if err != nil {
+		fail(err)
+		return
+	}
+	art, err := learn.WriteArtifacts(ls)
+	if err != nil {
+		fail(err)
+		return
+	}
+	fmt.Printf("name:       %s\n", ls.Name)
+	fmt.Printf("kind:       %s (%s)\n", ls.Kind, ls.Confidence)
+	fmt.Printf("git:        %v\n", ls.HasGit)
+	fmt.Printf("compose:    %v %v\n", ls.HasCompose, ls.ComposeServices)
+	fmt.Printf("files~:     %d\n", ls.FileCountApprox)
+	if len(ls.Reasons) > 0 {
+		fmt.Printf("why:        %s\n", strings.Join(ls.Reasons, "; "))
+	}
+	fmt.Printf("\nbrief:  %s\njson:   %s\n", art.Markdown, art.JSON)
+
+	led, err := ledger.Open(findLedger(root))
+	if err != nil {
+		fail(err)
+		return
+	}
+	_, _ = led.Append("frontier-git", "learn.classified", map[string]any{
+		"root":       ls.Root,
+		"name":       ls.Name,
+		"kind":       ls.Kind,
+		"confidence": ls.Confidence,
+		"has_git":    ls.HasGit,
+		"has_compose": ls.HasCompose,
+		"brief":      art.Markdown,
+		"json":       art.JSON,
+	})
+	axiom("F0", "ledger.append", "learn.classified sealed")
+	axiom("F4", "learn.done", ls.Kind)
+}
+
+func runLearnStatus(cwd string) {
+	led, err := ledger.Open(findLedger(cwd))
+	if err != nil {
+		fail(err)
+		return
+	}
+	rows, _ := led.Tail(40)
+	n := 0
+	for _, r := range rows {
+		if strings.HasPrefix(r.Action, "learn.") {
+			fmt.Printf("%d %s %s %v\n", r.Seq, r.TS, r.Action, r.Payload)
+			n++
+		}
+	}
+	latest := filepath.Join(cwd, ".frontier", "learn", "LATEST")
+	if b, err := os.ReadFile(latest); err == nil {
+		fmt.Printf("LATEST artifacts: %s\n", strings.TrimSpace(string(b)))
+	}
+	if n == 0 {
+		fmt.Println("no learn.* seals yet — run: frontier L classify")
+	}
 }
 
 func axiom(id, when, detail string) {
