@@ -103,6 +103,7 @@ git frontier demo|ledger|status|explain
 | [english/V_IMPLEMENTATION.md](english/V_IMPLEMENTATION.md) | Guard (G) |
 | [english/O_OPTIMIZE.md](english/O_OPTIMIZE.md) | Optimize (O) |
 | [english/O_VERIFY.md](english/O_VERIFY.md) | Optimize verification (tests + browser) |
+| [english/stacks/](english/stacks/) | Stack playbooks (Python/web, Go, Node, …) |
 | [english/SCM.md](english/SCM.md) | SCM onboarding |
 | [english/SECURITY_POLICY_OWASP.md](english/SECURITY_POLICY_OWASP.md) | Guard policy (OWASP) |
 | [english/CUSTOMER_JOURNEY.md](english/CUSTOMER_JOURNEY.md) | Takeover / vibe-code use |
