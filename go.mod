@@ -1,3 +1,3 @@
-module github.com/Wadek/frontier-push-mcp
+module github.com/Wadek/frontier-ship
 
 go 1.22

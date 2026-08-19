@@ -37,7 +37,7 @@ Alpha tags (`v0.1.0-alpha.1`) create a **prerelease**.
 From a clean tree (or with `FRONTIER_SOFT=1` if your Frontier `git` blocks tagging habits):
 
 ```powershell
-cd C:\Users\waka\src\frontier-push-mcp
+cd C:\Users\waka\src\frontier-ship
 # use real git for the tag push if the shim fights you:
 $env:FRONTIER_GIT_BIN = "C:\Program Files\Git\cmd\git.exe"
 
@@ -48,7 +48,7 @@ git push origin v0.1.0-alpha.1
 ### 3. Watch GitHub Actions
 
 ```text
-https://github.com/Wadek/frontier-push-mcp/actions
+https://github.com/Wadek/frontier-ship/actions
 ```
 
 Open **SLSA go releaser** for the tag. Wait until all matrix builds are green.
@@ -56,7 +56,7 @@ Open **SLSA go releaser** for the tag. Wait until all matrix builds are green.
 ### 4. Confirm the release page
 
 ```text
-https://github.com/Wadek/frontier-push-mcp/releases/tag/v0.1.0-alpha.1
+https://github.com/Wadek/frontier-ship/releases/tag/v0.1.0-alpha.1
 ```
 
 You should see binaries + `.intoto.jsonl` files. Marked **Pre-release**.
@@ -86,7 +86,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release download v0.1.0-alpha.1 \
-            --repo Wadek/frontier-push-mcp \
+            --repo Wadek/frontier-ship \
             --pattern 'frontier-git-linux-amd64*' \
             --dir /tmp/frontier
           chmod +x /tmp/frontier/frontier-git-linux-amd64
@@ -98,7 +98,7 @@ jobs:
       #     # see https://github.com/slsa-framework/slsa-verifier
       #     slsa-verifier verify-artifact /usr/local/bin/frontier-git \
       #       --provenance-path /tmp/frontier/frontier-git-linux-amd64.intoto.jsonl \
-      #       --source-uri github.com/Wadek/frontier-push-mcp \
+      #       --source-uri github.com/Wadek/frontier-ship \
       #       --source-tag v0.1.0-alpha.1
 
       - name: Point FRONTIER_GIT_BIN at system git; put frontier first if desired
@@ -126,7 +126,7 @@ That builds; asset upload to a Release is mainly for **tags**.
 # install: https://github.com/slsa-framework/slsa-verifier/releases
 slsa-verifier verify-artifact ./frontier-git-linux-amd64 \
   --provenance-path ./frontier-git-linux-amd64.intoto.jsonl \
-  --source-uri github.com/Wadek/frontier-push-mcp \
+  --source-uri github.com/Wadek/frontier-ship \
   --source-tag v0.1.0-alpha.1
 ```
 

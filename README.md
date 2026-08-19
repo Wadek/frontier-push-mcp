@@ -1,6 +1,6 @@
-# Frontier Push
+# Frontier Ship
 
-Teach AI (and humans) to ship code safely, and **manage vibe code** under policy.
+Manage code in a frontier-AI landscape — **ship safely** (V) and **stay slim** (S).
 
 **The daily interface is `git`.**  
 **MCP** connects hosts and (later) agents.  
@@ -33,8 +33,8 @@ Today: **V only.** S is on the roadmap.
 Full steps: **[english/INIT.md](english/INIT.md)**
 
 ```powershell
-git clone https://github.com/Wadek/frontier-push-mcp.git
-cd frontier-push-mcp
+git clone https://github.com/Wadek/frontier-ship.git
+cd frontier-ship
 powershell -File scripts\install-git-interface.ps1
 # new terminal
 git frontier explain

@@ -21,7 +21,7 @@ You never need a special command name. Same muscle memory as everyone else.
 
 ```powershell
 $env:Path = "C:\Users\waka\sdk\go\bin;C:\Program Files\Git\cmd;" + $env:Path
-cd C:\Users\waka\src\frontier-push-mcp
+cd C:\Users\waka\src\frontier-ship
 go build -o D:\frontier\bin\frontier-git.exe ./cmd/frontier-git
 Copy-Item -Force D:\frontier\bin\frontier-git.exe D:\frontier\bin\git.exe
 

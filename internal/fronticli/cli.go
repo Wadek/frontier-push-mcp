@@ -9,11 +9,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Wadek/frontier-push-mcp/internal/gitx"
-	"github.com/Wadek/frontier-push-mcp/internal/ledger"
-	"github.com/Wadek/frontier-push-mcp/internal/owasp"
-	"github.com/Wadek/frontier-push-mcp/internal/policy"
-	"github.com/Wadek/frontier-push-mcp/internal/vscan"
+	"github.com/Wadek/frontier-ship/internal/gitx"
+	"github.com/Wadek/frontier-ship/internal/ledger"
+	"github.com/Wadek/frontier-ship/internal/owasp"
+	"github.com/Wadek/frontier-ship/internal/policy"
+	"github.com/Wadek/frontier-ship/internal/vscan"
 )
 
 // Set by SLSA / release ldflags.

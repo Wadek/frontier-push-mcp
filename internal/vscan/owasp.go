@@ -1,6 +1,6 @@
 package vscan
 
-import "github.com/Wadek/frontier-push-mcp/internal/owasp"
+import "github.com/Wadek/frontier-ship/internal/owasp"
 
 // OWASPScanner wraps the built-in OWASP Top10 v0 regex ScanTree.
 type OWASPScanner struct{}

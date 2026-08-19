@@ -8,12 +8,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Wadek/frontier-push-mcp/internal/egress"
-	"github.com/Wadek/frontier-push-mcp/internal/gitx"
-	"github.com/Wadek/frontier-push-mcp/internal/ledger"
-	"github.com/Wadek/frontier-push-mcp/internal/mcpstdio"
-	"github.com/Wadek/frontier-push-mcp/internal/policy"
-	"github.com/Wadek/frontier-push-mcp/internal/role"
+	"github.com/Wadek/frontier-ship/internal/egress"
+	"github.com/Wadek/frontier-ship/internal/gitx"
+	"github.com/Wadek/frontier-ship/internal/ledger"
+	"github.com/Wadek/frontier-ship/internal/mcpstdio"
+	"github.com/Wadek/frontier-ship/internal/policy"
+	"github.com/Wadek/frontier-ship/internal/role"
 )
 
 // Set by SLSA / release ldflags.
@@ -51,7 +51,7 @@ func main() {
 	emptyObj := map[string]any{"type": "object", "properties": map[string]any{}, "additionalProperties": false}
 
 	srv := &mcpstdio.Server{
-		Name:    "frontier-push",
+		Name:    "frontier-ship",
 		Version: version,
 		Tools: []mcpstdio.Tool{
 			{Name: "frontier_whoami", Description: "Show current role, repo, and frontier principles. Cheap. Start here.", InputSchema: emptyObj},
@@ -156,7 +156,7 @@ func (st *state) dispatch(name string, args map[string]any) (string, error) {
 }
 
 func (st *state) whoami() (string, error) {
-	out := fmt.Sprintf(`frontier-push MCP
+	out := fmt.Sprintf(`frontier-ship MCP
 role:    %s
 repo:    %s
 ledger:  local append-only
