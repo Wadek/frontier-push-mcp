@@ -58,55 +58,26 @@ Until those exist: follow this doc manually and paste results into the PR.
 
 ---
 
-## Stack playbook — Python + static web UI (tasks)
+## Stack playbooks (contextual + repeatable)
 
-**Example customer:** `github.com/Wadek/tasks` under `D:\wakalabs\tasks`.
+Full index and template: **[`stacks/README.md`](stacks/README.md)**.
 
-### A. Equivalence
+| Stack | Playbook |
+|-------|----------|
+| Python + static UI | [`stacks/python-web-static.md`](stacks/python-web-static.md) (from **tasks**) |
+| Go HTTP | [`stacks/go-http.md`](stacks/go-http.md) (stub) |
+| Node Express + SPA | [`stacks/node-express.md`](stacks/node-express.md) (stub) |
 
-```text
-pip install -r requirements-dev.txt
-pytest tests/test_api_equivalence.py -v --tb=short
-```
-
-Covers: list/create/toggle/update/delete payloads; static `/` and `/main.js` bytes vs disk (or vs baseline).
-
-### B. Browser (Playwright)
+### Local loop for one Opt (any stack)
 
 ```text
-playwright install chromium
-pytest tests/test_browser_smoke.py -v --tb=short
-```
-
-Covers: open UI, add task, toggle, edit, delete, search still filters (token optional via env `TASKS_E2E_BASE`).
-
-Default: ephemeral server from `conftest.py`. Optional gateway: `TASKS_E2E_BASE=https://tasks.wakalabs.net?token=…` (secret via env, never commit).
-
-### GitHub Actions (customer has GitHub)
-
-Workflow: `.github/workflows/verify.yml` — runs `pytest -v` (API + Playwright) on PR/push to `main`.  
-That is the customer-visible proof on the PR checks panel.
-
-### Local loop for one Opt
-
-```text
-# baseline (verbose — show in terminal)
-pytest -v --tb=short
+# baseline (verbose — show named results in terminal)
+<playbook Layer A + B commands>
 # implement Opt-00N
-pytest -v --tb=short
+<same commands again>
 frontier guard && frontier plan && frontier apply
-# PR with Opt section + Verification + CI green
+# PR = Opt section + Verification paste + CI green (if GitHub)
 ```
-
----
-
-## Stack playbooks to add later
-
-| Stack | Equivalence | Browser |
-|-------|-------------|---------|
-| Node/Express | jest/vitest + supertest | Playwright |
-| Go HTTP | `go test` + httptest | Playwright |
-| Pure library (no UI) | unit only | N/A — skip Layer B with note |
 
 ---
 
